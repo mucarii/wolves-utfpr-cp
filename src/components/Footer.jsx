@@ -4,7 +4,7 @@ import { WolvesLogo } from './Navbar'
 import SocialLinks from './SocialLinks'
 
 const footerLinks = {
-  Clube: [
+  Time: [
     { label: 'Sobre o Time', path: '/time' },
     { label: 'Extensão UTFPR', path: '/extensao' },
     { label: 'Contato', path: '/contato' },

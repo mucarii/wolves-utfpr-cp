@@ -59,7 +59,7 @@ export default function TreinosPage() {
           </div>
           <h2 className="text-2xl md:text-3xl font-black text-white mb-3">Quer entrar para o time?</h2>
           <p className="text-blue-100 mb-7 max-w-md mx-auto">
-            Apareça em qualquer treino, ou mande uma mensagem para o Instagram do clube.
+            Apareça em qualquer treino, ou mande uma mensagem para o Instagram do time.
             Sem necessidade de experiência prévia!
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
