@@ -1,4 +1,4 @@
-﻿import { FaEnvelope, FaMapMarkerAlt, FaClock, FaInstagram } from 'react-icons/fa'
+﻿import { FaEnvelope, FaMapMarkerAlt, FaClock } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 import { WolvesLogo } from './Navbar'
 import SocialLinks from './SocialLinks'
@@ -46,15 +46,6 @@ export default function Footer() {
               onError={(e) => { e.target.style.display = 'none' }}
             />
             <SocialLinks size={20} className="mb-4" />
-            <a
-              href="https://instagram.com/wolvesutfcp"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm font-semibold transition-colors"
-            >
-              <FaInstagram size={16} />
-              @wolvesutfcp
-            </a>
           </div>
 
           {/* Links */}

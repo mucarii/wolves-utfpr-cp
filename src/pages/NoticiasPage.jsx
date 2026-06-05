@@ -1,36 +1,53 @@
-﻿import { FaCalendarAlt, FaArrowRight, FaSearch } from 'react-icons/fa'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { db } from '../firebase'
+import { FaCalendarAlt, FaArrowRight, FaSearch } from 'react-icons/fa'
 
-const allNews = [
-  { id: 1, category: 'Jogo', title: 'Wolves UTFPR-CP derrota rival e assume liderança do campeonato de tackle', date: '04 Jun 2026', color: 'from-blue-900 to-blue-950', featured: true },
-  { id: 2, category: 'Recrutamento', title: 'Novo wide receiver reforça o ataque para o restante da temporada', date: '02 Jun 2026', color: 'from-purple-900 to-purple-950', featured: false },
-  { id: 3, category: 'Flag Football', title: 'Equipe de Flag vence torneio regional e se classifica para o nacional', date: '01 Jun 2026', color: 'from-emerald-900 to-emerald-950', featured: false },
-  { id: 4, category: 'Análise', title: 'Análise tática: como o QB liderou o comeback no quarto período', date: '30 Mai 2026', color: 'from-blue-900 to-blue-950', featured: false },
-  { id: 5, category: 'Clube', title: 'Wolves UTFPR-CP inaugura novo campo de treino com capacidade para 200 atletas', date: '28 Mai 2026', color: 'from-gray-800 to-gray-950', featured: false },
-  { id: 6, category: 'Parceria', title: 'Acordo de patrocínio garante novos equipamentos para a temporada', date: '25 Mai 2026', color: 'from-indigo-900 to-indigo-950', featured: false },
-  { id: 7, category: 'Jogo', title: 'Bowl regional: Wolves UTFPR-CP avança à grande final com goleada de touchdowns', date: '22 Mai 2026', color: 'from-blue-900 to-blue-950', featured: false },
-  { id: 8, category: 'Entrevista', title: 'Capitão fala sobre preparação e metas dos Wolves UTFPR-CP para o nacional', date: '20 Mai 2026', color: 'from-red-900 to-red-950', featured: false },
-]
+const catBadge = {
+  JOGO: 'bg-blue-600',
+  TREINO: 'bg-gray-600',
+  EVENTO: 'bg-indigo-600',
+  'FLAG FOOTBALL': 'bg-emerald-600',
+  'EXTENSÃO': 'bg-orange-600',
+  GERAL: 'bg-gray-600',
+}
 
-const categories = ['Todos', 'Jogo', 'Recrutamento', 'Flag Football', 'Clube', 'Análise', 'Entrevista']
+const catBg = {
+  JOGO: 'from-blue-900 to-blue-950',
+  TREINO: 'from-gray-800 to-gray-950',
+  EVENTO: 'from-indigo-900 to-indigo-950',
+  'FLAG FOOTBALL': 'from-emerald-900 to-emerald-950',
+  'EXTENSÃO': 'from-orange-900 to-orange-950',
+  GERAL: 'from-gray-800 to-gray-950',
+}
 
-const catColors = {
-  Jogo: 'bg-blue-600',
-  Recrutamento: 'bg-purple-600',
-  'Flag Football': 'bg-emerald-600',
-  Clube: 'bg-gray-600',
-  Parceria: 'bg-indigo-600',
-  Análise: 'bg-sky-600',
-  Entrevista: 'bg-red-600',
+function formatDate(val) {
+  if (!val) return ''
+  const d = val.toDate ? val.toDate() : new Date(val)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 export default function NoticiasPage() {
+  const [noticias, setNoticias] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [search, setSearch] = useState('')
 
-  const filtered = allNews.filter(n => {
-    const matchCat = activeCategory === 'Todos' || n.category === activeCategory
-    const matchSearch = n.title.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    const load = async () => {
+      const q = query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'))
+      const snap = await getDocs(q)
+      setNoticias(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const categories = ['Todos', ...Array.from(new Set(noticias.map(n => n.categoria)))]
+
+  const filtered = noticias.filter(n => {
+    const matchCat = activeCategory === 'Todos' || n.categoria === activeCategory
+    const matchSearch = n.titulo.toLowerCase().includes(search.toLowerCase())
     return matchCat && matchSearch
   })
 
@@ -57,56 +74,76 @@ export default function NoticiasPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+            <button key={cat} onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                 activeCategory === cat
                   ? 'bg-[#0c4dbe] text-white'
                   : 'bg-[#111] border border-white/10 text-gray-400 hover:text-white hover:border-white/30'
-              }`}
-            >
+              }`}>
               {cat}
             </button>
           ))}
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <p className="text-gray-500 text-center py-16">Nenhuma notícia encontrada.</p>
-      ) : (
+      {loading && (
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-2 border-[#0c4dbe] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && noticias.length === 0 && (
+        <p className="text-gray-500 text-center py-20">Nenhuma notícia publicada ainda.</p>
+      )}
+
+      {!loading && filtered.length === 0 && noticias.length > 0 && (
+        <p className="text-gray-500 text-center py-16">Nenhuma notícia encontrada para esta busca.</p>
+      )}
+
+      {!loading && filtered.length > 0 && (
         <>
+          {/* Featured */}
           {featured && (
-            <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${featured.color} h-72 flex items-end p-8 mb-8 card-hover cursor-pointer group`}>
-              <span className={`absolute top-5 left-5 ${catColors[featured.category] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
-                {featured.category}
+            <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${catBg[featured.categoria] || 'from-gray-800 to-gray-950'} h-72 flex items-end p-8 mb-8 card-hover cursor-pointer group`}>
+              {featured.url && (
+                <img src={featured.url} alt={featured.titulo} className="absolute inset-0 w-full h-full object-cover opacity-40" />
+              )}
+              <span className={`absolute top-5 left-5 ${catBadge[featured.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full z-10`}>
+                {featured.categoria}
               </span>
-              <div>
+              <div className="relative z-10">
                 <div className="flex items-center gap-1.5 text-white/50 text-xs mb-2">
-                  <FaCalendarAlt size={10} /> {featured.date}
+                  <FaCalendarAlt size={10} /> {formatDate(featured.criadoEm)}
                 </div>
                 <h2 className="text-white font-black text-xl md:text-2xl max-w-xl group-hover:text-[#6b90d4] transition-colors">
-                  {featured.title}
+                  {featured.titulo}
                 </h2>
+                <p className="text-white/60 text-sm mt-2 max-w-lg line-clamp-2">{featured.resumo}</p>
                 <div className="flex items-center gap-2 text-blue-300 text-sm mt-3 font-semibold">
                   Ler notícia <FaArrowRight size={12} />
                 </div>
               </div>
             </div>
           )}
+
+          {/* Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {rest.map(n => (
-              <div key={n.id} className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${n.color} h-48 flex items-end p-5 card-hover cursor-pointer group`}>
-                <span className={`absolute top-4 left-4 ${catColors[n.category] || 'bg-gray-600'} text-white text-xs font-bold px-2.5 py-0.5 rounded-full`}>
-                  {n.category}
+              <div key={n.id} className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${catBg[n.categoria] || 'from-gray-800 to-gray-950'} h-56 flex items-end p-5 card-hover cursor-pointer group`}>
+                {n.url && (
+                  <img src={n.url} alt={n.titulo} className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                )}
+                <span className={`absolute top-4 left-4 ${catBadge[n.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-2.5 py-0.5 rounded-full z-10`}>
+                  {n.categoria}
                 </span>
-                <div>
+                <div className="relative z-10">
                   <div className="flex items-center gap-1.5 text-white/50 text-xs mb-1.5">
-                    <FaCalendarAlt size={9} /> {n.date}
+                    <FaCalendarAlt size={9} /> {formatDate(n.criadoEm)}
                   </div>
                   <h3 className="text-white font-bold text-sm leading-snug group-hover:text-[#6b90d4] transition-colors line-clamp-2">
-                    {n.title}
+                    {n.titulo}
                   </h3>
+                  <p className="text-white/50 text-xs mt-1 line-clamp-1">{n.resumo}</p>
                 </div>
               </div>
             ))}

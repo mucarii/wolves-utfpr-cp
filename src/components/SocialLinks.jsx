@@ -1,14 +1,38 @@
-import { FaInstagram, FaFacebookF, FaYoutube, FaTiktok, FaWhatsapp } from 'react-icons/fa'
+import {
+  FaInstagram,
+  FaFacebookF,
+  FaYoutube,
+  FaTiktok,
+} from "react-icons/fa";
 
 const socials = [
-  { icon: FaInstagram, href: 'https://instagram.com/wolvesutfcp', label: 'Instagram', hoverColor: 'hover:text-pink-500' },
-  { icon: FaFacebookF, href: 'https://facebook.com', label: 'Facebook', hoverColor: 'hover:text-blue-500' },
-  { icon: FaYoutube, href: 'https://www.youtube.com/@wolvesutfpr4157', label: 'YouTube', hoverColor: 'hover:text-red-500' },
-  { icon: FaTiktok, href: 'https://tiktok.com', label: 'TikTok', hoverColor: 'hover:text-white' },
-  { icon: FaWhatsapp, href: 'https://wa.me/5500000000000', label: 'WhatsApp', hoverColor: 'hover:text-green-400' },
-]
+  {
+    icon: FaInstagram,
+    href: "https://instagram.com/wolvesutfcp",
+    label: "Instagram",
+    hoverColor: "hover:text-pink-500",
+  },
+  {
+    icon: FaFacebookF,
+    href: "https://www.facebook.com/WOLVESUTFPRCP",
+    label: "Facebook",
+    hoverColor: "hover:text-blue-500",
+  },
+  {
+    icon: FaYoutube,
+    href: "https://www.youtube.com/@wolvesutfpr4157",
+    label: "YouTube",
+    hoverColor: "hover:text-red-500",
+  },
+  {
+    icon: FaTiktok,
+    href: "https://www.tiktok.com/@wolves.cornelio",
+    label: "TikTok",
+    hoverColor: "hover:text-white",
+  },
+];
 
-export default function SocialLinks({ size = 18, className = '' }) {
+export default function SocialLinks({ size = 18, className = "" }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {socials.map(({ icon: Icon, href, label, hoverColor }) => (
@@ -24,5 +48,5 @@ export default function SocialLinks({ size = 18, className = '' }) {
         </a>
       ))}
     </div>
-  )
+  );
 }
