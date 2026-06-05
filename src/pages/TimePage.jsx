@@ -35,9 +35,15 @@ const staticPlayers = [
 function PlayerCard({ player }) {
   return (
     <div className="bg-[#111] border border-white/10 rounded-2xl p-6 card-hover group text-center">
-      <div className="w-20 h-20 rounded-full bg-[#0c4dbe]/20 border-2 border-[#0c4dbe]/30 flex items-center justify-center mx-auto mb-4 group-hover:border-[#0c4dbe] transition-colors">
-        <span className="text-3xl font-black text-[#0c4dbe]">{player.numero}</span>
+      <div className="w-20 h-20 rounded-full bg-[#0c4dbe]/20 border-2 border-[#0c4dbe]/30 mx-auto mb-4 group-hover:border-[#0c4dbe] transition-colors overflow-hidden flex items-center justify-center">
+        {player.url
+          ? <img src={player.url} alt={player.nome} className="w-full h-full object-cover" />
+          : <span className="text-3xl font-black text-[#0c4dbe]">{player.numero}</span>
+        }
       </div>
+      {player.url && (
+        <div className="text-[#0c4dbe] font-black text-sm mb-1">#{player.numero}</div>
+      )}
       <h3 className="text-white font-bold text-base mb-2">{player.nome}</h3>
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${posColors[player.posicao] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
@@ -55,6 +61,8 @@ export default function TimePage() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const [formacoes, setFormacoes] = useState([])
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -62,6 +70,9 @@ export default function TimePage() {
         const snap = await getDocs(q)
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         setPlayers(data.length > 0 ? data : staticPlayers)
+
+        const fSnap = await getDocs(collection(db, 'formacoes'))
+        setFormacoes(fSnap.docs.map(d => ({ id: d.id, ...d.data() })))
       } catch {
         setPlayers(staticPlayers)
       }
@@ -78,35 +89,39 @@ export default function TimePage() {
         <p className="text-gray-400 mt-3">Conheça os atletas que vestem o uniforme do Wolves UTFPR-CP.</p>
       </div>
 
-      {/* Formation graphic */}
-      <div className="bg-[#0a1a0a] border border-white/10 rounded-3xl p-8 mb-16 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-          }}
-        />
-        <h2 className="text-white font-bold text-center mb-2 relative z-10">Formação Ofensiva</h2>
-        <p className="text-gray-500 text-xs text-center mb-6 relative z-10 uppercase tracking-widest">Pro Set — 1 RB · 2 WR · 1 TE</p>
-        <div className="relative z-10 flex flex-col items-center gap-5 py-4">
-          {[
-            ['WR', 'LT', 'LG', 'C', 'RG', 'RT', 'TE'],
-            ['WR', '', '', 'QB', '', '', ''],
-            ['', '', '', 'RB', '', '', ''],
-          ].map((row, i) => (
-            <div key={i} className="flex gap-2 justify-center">
-              {row.map((pos, j) => pos ? (
-                <div key={j} className="w-12 h-12 rounded-full bg-[#0c4dbe] flex items-center justify-center">
-                  <span className="text-white text-[10px] font-bold">{pos}</span>
+      {/* Formações */}
+      {formacoes.length > 0 && (
+        <div className="mb-16 space-y-6">
+          <h2 className="text-xl font-bold text-gray-300 uppercase tracking-widest border-b border-white/10 pb-3">Formações</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {formacoes.map(f => (
+              <div key={f.id} className="bg-[#0a1a0a] border border-white/10 rounded-2xl p-6 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5" style={{
+                  backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+                  backgroundSize: '40px 40px',
+                }} />
+                <div className="relative z-10">
+                  <h3 className="text-white font-bold text-center mb-1">{f.nome}</h3>
+                  <p className="text-gray-500 text-xs text-center uppercase tracking-widest mb-5">{f.tipo}</p>
+                  <div className="flex flex-col items-center gap-3">
+                    {f.linhas.map((linha, i) => (
+                      <div key={i} className="flex gap-1.5 justify-center flex-wrap">
+                        {linha.map((pos, j) => pos ? (
+                          <div key={j} className="w-10 h-10 rounded-full bg-[#0c4dbe] flex items-center justify-center">
+                            <span className="text-white text-[9px] font-bold">{pos}</span>
+                          </div>
+                        ) : (
+                          <div key={j} className="w-10 h-10" />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <div key={j} className="w-12 h-12" />
-              ))}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {loading && (
         <div className="flex justify-center py-20">
