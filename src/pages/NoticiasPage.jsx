@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { db } from '../firebase'
-import { FaCalendarAlt, FaArrowRight, FaSearch } from 'react-icons/fa'
+import { FaCalendarAlt, FaArrowRight, FaSearch, FaTimes } from 'react-icons/fa'
 
 const catBadge = {
   JOGO: 'bg-blue-600',
@@ -27,11 +27,83 @@ function formatDate(val) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function NoticiaModal({ noticia, onClose }) {
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Imagem */}
+        {noticia.url ? (
+          <div className="relative w-full h-64 overflow-hidden rounded-t-2xl">
+            <img src={noticia.url} alt={noticia.titulo} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent" />
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors"
+            >
+              <FaTimes size={16} />
+            </button>
+            <span className={`absolute top-4 left-4 ${catBadge[noticia.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
+              {noticia.categoria}
+            </span>
+          </div>
+        ) : (
+          <div className={`relative w-full h-24 bg-gradient-to-br ${catBg[noticia.categoria] || 'from-gray-800 to-gray-950'} rounded-t-2xl flex items-center px-6`}>
+            <span className={`${catBadge[noticia.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
+              {noticia.categoria}
+            </span>
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+            >
+              <FaTimes size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Conteúdo */}
+        <div className="px-7 py-6">
+          <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-3">
+            <FaCalendarAlt size={10} /> {formatDate(noticia.criadoEm)}
+          </div>
+          <h2 className="text-white font-black text-2xl leading-tight mb-3">{noticia.titulo}</h2>
+          {noticia.resumo && (
+            <p className="text-gray-300 text-base font-medium mb-5 leading-relaxed border-l-2 border-[#0c4dbe] pl-4">
+              {noticia.resumo}
+            </p>
+          )}
+          {noticia.conteudo && (
+            <div className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">
+              {noticia.conteudo}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function NoticiasPage() {
   const [noticias, setNoticias] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -55,6 +127,8 @@ export default function NoticiasPage() {
 
   return (
     <div className="page-enter pt-8 pb-20 px-6 max-w-7xl mx-auto w-full">
+      {selected && <NoticiaModal noticia={selected} onClose={() => setSelected(null)} />}
+
       <div className="mb-10">
         <span className="text-[#0c4dbe] text-xs font-bold uppercase tracking-widest">Portal de Notícias</span>
         <h1 className="text-4xl md:text-5xl font-black text-white mt-2">Notícias</h1>
@@ -104,7 +178,10 @@ export default function NoticiasPage() {
         <>
           {/* Featured */}
           {featured && (
-            <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${catBg[featured.categoria] || 'from-gray-800 to-gray-950'} h-72 flex items-end p-8 mb-8 card-hover cursor-pointer group`}>
+            <div
+              onClick={() => setSelected(featured)}
+              className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${catBg[featured.categoria] || 'from-gray-800 to-gray-950'} h-72 flex items-end p-8 mb-8 card-hover cursor-pointer group`}
+            >
               {featured.url && (
                 <img src={featured.url} alt={featured.titulo} className="absolute inset-0 w-full h-full object-cover opacity-40" />
               )}
@@ -129,7 +206,11 @@ export default function NoticiasPage() {
           {/* Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {rest.map(n => (
-              <div key={n.id} className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${catBg[n.categoria] || 'from-gray-800 to-gray-950'} h-56 flex items-end p-5 card-hover cursor-pointer group`}>
+              <div
+                key={n.id}
+                onClick={() => setSelected(n)}
+                className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${catBg[n.categoria] || 'from-gray-800 to-gray-950'} h-56 flex items-end p-5 card-hover cursor-pointer group`}
+              >
                 {n.url && (
                   <img src={n.url} alt={n.titulo} className="absolute inset-0 w-full h-full object-cover opacity-30" />
                 )}
