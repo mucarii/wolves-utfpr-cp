@@ -1,4 +1,4 @@
-﻿import { FaEnvelope, FaMapMarkerAlt, FaClock } from 'react-icons/fa'
+﻿import { FaMapMarkerAlt, FaClock } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 import { WolvesLogo } from './Navbar'
 import SocialLinks from './SocialLinks'
@@ -74,10 +74,6 @@ export default function Footer() {
           <div className="flex items-start gap-3 text-gray-400 text-sm">
             <FaClock size={14} className="text-[#0c4dbe] mt-0.5 shrink-0" />
             <span>Ter &amp; Qui 17h30 &nbsp;|&nbsp; Sáb 09h</span>
-          </div>
-          <div className="flex items-start gap-3 text-gray-400 text-sm">
-            <FaEnvelope size={14} className="text-[#0c4dbe] mt-0.5 shrink-0" />
-            <span>contato@wolvescp.com.br</span>
           </div>
         </div>
 
