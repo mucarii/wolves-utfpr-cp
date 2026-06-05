@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, addDoc, getDocs, deleteDoc, doc, orderBy, query, setDoc } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../../firebase'
-import { FaTrash, FaPlus, FaImage, FaTimes, FaFootballBall } from 'react-icons/fa'
+import { FaTrash, FaPlus, FaImage, FaTimes, FaFootballBall, FaEdit } from 'react-icons/fa'
 
 const positions = ['Quarterback', 'Linemen', 'Wide Receiver / TE', 'Running Back', 'Defesa', 'Safety', 'Cornerback', 'Linebacker', 'Kicker']
 const emptyPlayer = { nome: '', numero: '', posicao: 'Quarterback', modalidade: 'Full Pad' }
@@ -13,6 +13,8 @@ const emptyFormacao = { nome: '', tipo: 'Ofensiva', linhas: ['', '', ''] }
 function AdminJogadoresTab() {
   const [jogadores, setJogadores] = useState([])
   const [form, setForm] = useState(emptyPlayer)
+  const [editingId, setEditingId] = useState(null)
+  const [editingStorageRef, setEditingStorageRef] = useState(null)
   const [imgFile, setImgFile] = useState(null)
   const [imgPreview, setImgPreview] = useState(null)
   const [progress, setProgress] = useState(0)
@@ -49,12 +51,48 @@ function AdminJogadoresTab() {
     )
   })
 
+  const startEdit = (j) => {
+    setEditingId(j.id)
+    setEditingStorageRef(j.storageRef || null)
+    setForm({ nome: j.nome, numero: j.numero, posicao: j.posicao, modalidade: j.modalidade })
+    setImgPreview(j.url || null)
+    setImgFile(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditingStorageRef(null)
+    setForm(emptyPlayer)
+    clearImg()
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     let imgData = {}
-    if (imgFile) imgData = await uploadImg(imgFile)
-    await addDoc(collection(db, 'jogadores'), { ...form, numero: Number(form.numero), ...imgData, criadoEm: new Date() })
+    if (imgFile) {
+      if (editingStorageRef) try { await deleteObject(ref(storage, editingStorageRef)) } catch {}
+      imgData = await uploadImg(imgFile)
+    } else if (editingId && imgPreview) {
+      // kept existing image
+    } else if (editingId && !imgPreview) {
+      imgData = { url: null, storageRef: null }
+    }
+
+    if (editingId) {
+      const { updateDoc } = await import('firebase/firestore')
+      await updateDoc(doc(db, 'jogadores', editingId), {
+        ...form,
+        numero: Number(form.numero),
+        ...(Object.keys(imgData).length ? imgData : {}),
+      })
+      setEditingId(null)
+      setEditingStorageRef(null)
+    } else {
+      await addDoc(collection(db, 'jogadores'), { ...form, numero: Number(form.numero), ...imgData, criadoEm: new Date() })
+    }
+
     setForm(emptyPlayer)
     clearImg()
     setProgress(0)
@@ -68,6 +106,7 @@ function AdminJogadoresTab() {
     if (!confirm(`Remover ${j.nome}?`)) return
     if (j.storageRef) try { await deleteObject(ref(storage, j.storageRef)) } catch {}
     await deleteDoc(doc(db, 'jogadores', j.id))
+    if (editingId === j.id) cancelEdit()
     await load()
   }
 
@@ -79,11 +118,20 @@ function AdminJogadoresTab() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
-        <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Adicionar Jogador</h2>
+      <div className={`bg-[#111] border rounded-2xl p-6 ${editingId ? 'border-[#0c4dbe]/50' : 'border-white/10'}`}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-black text-lg uppercase tracking-wide">
+            {editingId ? 'Editar Jogador' : 'Adicionar Jogador'}
+          </h2>
+          {editingId && (
+            <button onClick={cancelEdit} className="text-gray-500 hover:text-white text-xs uppercase tracking-wide transition-colors flex items-center gap-1">
+              <FaTimes size={11} /> Cancelar
+            </button>
+          )}
+        </div>
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
-            Jogador adicionado!
+            {editingId ? 'Alterações salvas!' : 'Jogador adicionado!'}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -149,8 +197,8 @@ function AdminJogadoresTab() {
 
           <button type="submit" disabled={loading}
             className="btn-primary px-6 py-2.5 rounded-xl text-white font-bold text-sm uppercase tracking-wide flex items-center gap-2 disabled:opacity-50">
-            <FaPlus size={12} />
-            {loading ? 'Salvando...' : 'Adicionar Jogador'}
+            {editingId ? <FaEdit size={12} /> : <FaPlus size={12} />}
+            {loading ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Adicionar Jogador'}
           </button>
         </form>
       </div>
@@ -177,9 +225,14 @@ function AdminJogadoresTab() {
                       <p className="text-gray-500 text-xs">{j.modalidade}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleDelete(j)} className="text-gray-600 hover:text-red-400 transition-colors shrink-0">
-                    <FaTrash size={13} />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => startEdit(j)} className="text-gray-500 hover:text-[#0c4dbe] transition-colors">
+                      <FaEdit size={13} />
+                    </button>
+                    <button onClick={() => handleDelete(j)} className="text-gray-600 hover:text-red-400 transition-colors">
+                      <FaTrash size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
