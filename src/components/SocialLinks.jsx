@@ -3,7 +3,7 @@ import { FaInstagram, FaFacebookF, FaYoutube, FaTiktok, FaWhatsapp } from 'react
 const socials = [
   { icon: FaInstagram, href: 'https://instagram.com/wolvesutfcp', label: 'Instagram', hoverColor: 'hover:text-pink-500' },
   { icon: FaFacebookF, href: 'https://facebook.com', label: 'Facebook', hoverColor: 'hover:text-blue-500' },
-  { icon: FaYoutube, href: 'https://youtube.com', label: 'YouTube', hoverColor: 'hover:text-red-500' },
+  { icon: FaYoutube, href: 'https://www.youtube.com/@wolvesutfpr4157', label: 'YouTube', hoverColor: 'hover:text-red-500' },
   { icon: FaTiktok, href: 'https://tiktok.com', label: 'TikTok', hoverColor: 'hover:text-white' },
   { icon: FaWhatsapp, href: 'https://wa.me/5500000000000', label: 'WhatsApp', hoverColor: 'hover:text-green-400' },
 ]
