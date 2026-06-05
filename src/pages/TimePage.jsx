@@ -1,47 +1,75 @@
-﻿const positions = ['Quarterback', 'Linemen', 'Wide Receiver / TE', 'Running Back', 'Defesa']
+import { useEffect, useState } from 'react'
+import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { db } from '../firebase'
 
-const players = [
-  { name: 'Matheus Rodrigues', number: 1, pos: 'Quarterback', country: 'BRA' },
-  { name: 'Carlos Henrique', number: 50, pos: 'Linemen', country: 'BRA' },
-  { name: 'Diego Souza', number: 52, pos: 'Linemen', country: 'BRA' },
-  { name: 'Leonardo Castro', number: 55, pos: 'Linemen', country: 'BRA' },
-  { name: 'André Lima', number: 58, pos: 'Linemen', country: 'BRA' },
-  { name: 'Felipe Torres', number: 80, pos: 'Wide Receiver / TE', country: 'BRA' },
-  { name: 'Bruno Alves', number: 84, pos: 'Wide Receiver / TE', country: 'BRA' },
-  { name: 'Thiago Moreira', number: 88, pos: 'Wide Receiver / TE', country: 'BRA' },
-  { name: 'Rafael Cunha', number: 32, pos: 'Running Back', country: 'BRA' },
-  { name: 'Lucas Ferreira', number: 35, pos: 'Running Back', country: 'BRA' },
-  { name: 'Rodrigo Melo', number: 90, pos: 'Defesa', country: 'BRA' },
-  { name: 'Eduardo Nunes', number: 93, pos: 'Defesa', country: 'BRA' },
-  { name: 'Gabriel Pinto', number: 22, pos: 'Defesa', country: 'BRA' },
-]
+const positions = ['Quarterback', 'Linemen', 'Wide Receiver / TE', 'Running Back', 'Defesa', 'Safety', 'Cornerback', 'Linebacker', 'Kicker']
 
 const posColors = {
-  'Quarterback': 'bg-red-500/20 text-red-400 border-red-500/30',
-  'Linemen': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  'Quarterback':        'bg-red-500/20 text-red-400 border-red-500/30',
+  'Linemen':            'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   'Wide Receiver / TE': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  'Running Back': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  'Defesa': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  'Running Back':       'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  'Defesa':             'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  'Safety':             'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  'Cornerback':         'bg-pink-500/20 text-pink-400 border-pink-500/30',
+  'Linebacker':         'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  'Kicker':             'bg-gray-500/20 text-gray-400 border-gray-500/30',
 }
+
+const staticPlayers = [
+  { nome: 'Matheus Rodrigues', numero: 1,  posicao: 'Quarterback' },
+  { nome: 'Carlos Henrique',   numero: 50, posicao: 'Linemen' },
+  { nome: 'Diego Souza',       numero: 52, posicao: 'Linemen' },
+  { nome: 'Leonardo Castro',   numero: 55, posicao: 'Linemen' },
+  { nome: 'André Lima',        numero: 58, posicao: 'Linemen' },
+  { nome: 'Felipe Torres',     numero: 80, posicao: 'Wide Receiver / TE' },
+  { nome: 'Bruno Alves',       numero: 84, posicao: 'Wide Receiver / TE' },
+  { nome: 'Thiago Moreira',    numero: 88, posicao: 'Wide Receiver / TE' },
+  { nome: 'Rafael Cunha',      numero: 32, posicao: 'Running Back' },
+  { nome: 'Lucas Ferreira',    numero: 35, posicao: 'Running Back' },
+  { nome: 'Rodrigo Melo',      numero: 90, posicao: 'Defesa' },
+  { nome: 'Eduardo Nunes',     numero: 93, posicao: 'Defesa' },
+  { nome: 'Gabriel Pinto',     numero: 22, posicao: 'Defesa' },
+]
 
 function PlayerCard({ player }) {
   return (
     <div className="bg-[#111] border border-white/10 rounded-2xl p-6 card-hover group text-center">
       <div className="w-20 h-20 rounded-full bg-[#0c4dbe]/20 border-2 border-[#0c4dbe]/30 flex items-center justify-center mx-auto mb-4 group-hover:border-[#0c4dbe] transition-colors">
-        <span className="text-3xl font-black text-[#0c4dbe]">{player.number}</span>
+        <span className="text-3xl font-black text-[#0c4dbe]">{player.numero}</span>
       </div>
-      <h3 className="text-white font-bold text-base mb-2">{player.name}</h3>
+      <h3 className="text-white font-bold text-base mb-2">{player.nome}</h3>
       <div className="flex items-center justify-center gap-2 flex-wrap">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${posColors[player.pos]}`}>
-          {player.pos}
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${posColors[player.posicao] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+          {player.posicao}
         </span>
-        <span className="text-xs text-gray-500 font-mono">{player.country}</span>
+        {player.modalidade && player.modalidade !== 'Full Pad' && (
+          <span className="text-xs text-gray-500 font-mono">{player.modalidade}</span>
+        )}
       </div>
     </div>
   )
 }
 
 export default function TimePage() {
+  const [players, setPlayers] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const q = query(collection(db, 'jogadores'), orderBy('numero', 'asc'))
+        const snap = await getDocs(q)
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        setPlayers(data.length > 0 ? data : staticPlayers)
+      } catch {
+        setPlayers(staticPlayers)
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
+
   return (
     <div className="page-enter pt-8 pb-20 px-6 max-w-7xl mx-auto w-full">
       <div className="mb-12">
@@ -80,9 +108,14 @@ export default function TimePage() {
         </div>
       </div>
 
-      {/* Players by position */}
-      {positions.map(pos => {
-        const group = players.filter(p => p.pos === pos)
+      {loading && (
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-2 border-[#0c4dbe] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && positions.map(pos => {
+        const group = players.filter(p => p.posicao === pos)
         if (!group.length) return null
         return (
           <div key={pos} className="mb-12">
@@ -90,7 +123,7 @@ export default function TimePage() {
               {pos}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {group.map(player => <PlayerCard key={player.number} player={player} />)}
+              {group.map(player => <PlayerCard key={player.id || player.numero} player={player} />)}
             </div>
           </div>
         )

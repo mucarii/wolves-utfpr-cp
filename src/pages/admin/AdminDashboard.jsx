@@ -4,12 +4,16 @@ import { useNavigate } from 'react-router-dom'
 import AdminNoticias from './AdminNoticias'
 import AdminEventos from './AdminEventos'
 import AdminFotos from './AdminFotos'
-import { FaNewspaper, FaCalendarAlt, FaImages, FaSignOutAlt } from 'react-icons/fa'
+import AdminJogadores from './AdminJogadores'
+import AdminLoja from './AdminLoja'
+import { FaNewspaper, FaCalendarAlt, FaImages, FaSignOutAlt, FaUsers, FaShoppingBag } from 'react-icons/fa'
 import { WolvesLogo } from '../../components/Navbar'
 
 const tabs = [
   { id: 'noticias', label: 'Notícias', icon: FaNewspaper, component: AdminNoticias },
   { id: 'eventos', label: 'Eventos', icon: FaCalendarAlt, component: AdminEventos },
+  { id: 'jogadores', label: 'Jogadores', icon: FaUsers, component: AdminJogadores },
+  { id: 'loja', label: 'Loja', icon: FaShoppingBag, component: AdminLoja },
   { id: 'fotos', label: 'Fotos', icon: FaImages, component: AdminFotos },
 ]
 
