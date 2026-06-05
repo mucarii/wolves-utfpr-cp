@@ -1,4 +1,4 @@
-﻿import { FaFootballBall, FaSchool, FaUsers, FaHandshake, FaMapMarkerAlt, FaUniversity } from 'react-icons/fa'
+﻿import { FaFootballBall, FaSchool, FaUsers, FaHandshake, FaMapMarkerAlt, FaUniversity, FaHeart } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
 const projects = [
@@ -25,6 +25,14 @@ const projects = [
     tagColor: 'bg-orange-500',
     desc: 'Projeto de flag football voltado para ampliar a participação de grupos que ainda têm pouca representação no esporte — incluindo mulheres e pessoas que preferem a modalidade sem contato físico.',
     highlight: 'Modalidade: Flag Football',
+  },
+  {
+    icon: FaHeart,
+    name: 'Wolves na APAE',
+    tag: 'Inclusão Social',
+    tagColor: 'bg-pink-600',
+    desc: 'Visitas e atividades de flag football com alunos da APAE de Cornélio Procópio. O projeto leva o esporte como ferramenta de integração, alegria e desenvolvimento para pessoas com deficiência intelectual.',
+    highlight: 'Parceria: APAE Cornélio Procópio',
   },
 ]
 
@@ -136,6 +144,64 @@ export default function ExtensaoPage() {
                     <span className="text-[#0c4dbe] text-xs font-semibold">{highlight}</span>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Wolves nas Escolas — Vídeos */}
+      <section className="py-16 px-6 border-t border-white/5 bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-10">
+            <span className="text-emerald-500 text-xs font-bold uppercase tracking-widest">Projeto em ação</span>
+            <h2 className="text-3xl font-black text-white mt-2">Wolves nas Escolas</h2>
+            <p className="text-gray-400 mt-3 max-w-xl">
+              Ensinando flag football para crianças nas escolas públicas de Cornélio Procópio.
+            </p>
+          </div>
+          <div className="mb-6 rounded-2xl overflow-hidden border border-white/10">
+            <img
+              src="/projeto-escola/wolves_projetoescola1.jpg"
+              alt="Wolves nas Escolas — ensinando flag football para crianças"
+              className="w-full max-h-[420px] object-cover object-center"
+            />
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {['/projeto-escola/wolves_escola.mp4', '/projeto-escola/wolves_escola2.mp4', '/projeto-escola/wolves_escola3.mp4'].map((src, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden border border-white/10 bg-black">
+                <video
+                  src={src}
+                  controls
+                  muted
+                  playsInline
+                  className="w-full aspect-video object-cover"
+                  preload="metadata"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Wolves na APAE — Fotos */}
+      <section className="py-16 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-10">
+            <span className="text-pink-500 text-xs font-bold uppercase tracking-widest">Projeto em ação</span>
+            <h2 className="text-3xl font-black text-white mt-2">Wolves na APAE</h2>
+            <p className="text-gray-400 mt-3 max-w-xl">
+              Flag football como ferramenta de inclusão e alegria para alunos da APAE de Cornélio Procópio.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1,2,3,4,5,6,7].map((n) => (
+              <div key={n} className="rounded-2xl overflow-hidden border border-white/10 aspect-square">
+                <img
+                  src={`/projeto-apae/wolves_apae${n}.jpg`}
+                  alt={`Wolves na APAE — foto ${n}`}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                />
               </div>
             ))}
           </div>

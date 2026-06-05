@@ -15,28 +15,28 @@ const slides = [
     title: 'Wolves UTFPR-CP na chuva — raça e determinação em cada jogo',
     category: 'JOGO',
     accent: '#0c4dbe',
-    visual: <PhotoSlide src="/team-0.jpg" />,
+    visual: <PhotoSlide src="/time/team-0.jpg" />,
   },
   {
     id: 2,
     title: 'Equipe completa em campo — Wolves UTFPR-CP em temporada de resultados',
     category: 'TIME',
     accent: '#ffc501',
-    visual: <PhotoSlide src="/team-1.jpg" overlay="from-black/75 via-black/25 to-transparent" />,
+    visual: <PhotoSlide src="/time/team-1.jpg" overlay="from-black/75 via-black/25 to-transparent" />,
   },
   {
     id: 3,
     title: 'Treinos abertos na UTFPR-CP — Terça, Quinta às 17h30 e Sábado às 09h',
     category: 'VENHA JOGAR',
     accent: '#0c4dbe',
-    visual: <PhotoSlide src="/team-2.jpg" />,
+    visual: <PhotoSlide src="/time/team-2.jpg" />,
   },
   {
     id: 4,
     title: 'Wolves UTFPR-CP recebe rival no campo da universidade — futebol americano em Cornélio Procópio',
     category: 'JOGO EM CASA',
     accent: '#0c4dbe',
-    visual: <PhotoSlide src="/team-3.jpg" />,
+    visual: <PhotoSlide src="/time/team-3.jpg" />,
   },
 ]
 
