@@ -50,7 +50,9 @@ function PlayerCard({ player }) {
           {player.posicao}
         </span>
         {player.modalidade && player.modalidade !== 'Full Pad' && (
-          <span className="text-xs text-gray-500 font-mono">{player.modalidade}</span>
+          <span className="text-xs text-gray-500 font-mono">
+            {player.modalidade === 'Ambos' ? 'Full Pad / Flag' : player.modalidade}
+          </span>
         )}
       </div>
     </div>

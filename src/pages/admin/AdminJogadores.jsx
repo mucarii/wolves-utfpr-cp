@@ -164,7 +164,7 @@ function AdminJogadoresTab() {
                 className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#0c4dbe]">
                 <option>Full Pad</option>
                 <option>Flag Football</option>
-                <option>Ambos</option>
+                <option value="Full Pad / Flag">Full Pad / Flag</option>
               </select>
             </div>
           </div>

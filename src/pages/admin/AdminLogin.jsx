@@ -51,7 +51,7 @@ export default function AdminLogin() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#0c4dbe] transition-colors"
-              placeholder="admin@wolvesutfprcp.com"
+              placeholder="wolvescp.utfpr@gmail.com"
             />
           </div>
 
