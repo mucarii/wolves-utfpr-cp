@@ -272,15 +272,20 @@ function AdminFormacoesTab() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    const linhasFormatadas = form.linhas.map(l =>
-      l.split(',').map(p => p.trim().toUpperCase())
-    )
-    await addDoc(collection(db, 'formacoes'), { ...form, linhas: linhasFormatadas, criadoEm: new Date() })
-    setForm(emptyFormacao)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-    await load()
-    setLoading(false)
+    try {
+      const linhasFormatadas = form.linhas.map(l =>
+        l.split(',').map(p => p.trim().toUpperCase())
+      )
+      await addDoc(collection(db, 'formacoes'), { ...form, linhas: linhasFormatadas, criadoEm: new Date() })
+      setForm(emptyFormacao)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      await load()
+    } catch (err) {
+      alert('Erro ao salvar formação: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDelete = async (id) => {
