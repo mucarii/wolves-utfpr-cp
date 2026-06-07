@@ -1,46 +1,65 @@
+import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
 import { FaEnvelope, FaInstagram, FaWhatsapp, FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa'
 
-const contacts = [
-  {
-    icon: FaEnvelope,
-    label: 'E-mail',
-    value: 'wolvescp.utfpr@gmail.com',
-    href: 'mailto:wolvescp.utfpr@gmail.com',
-    description: 'Dúvidas, parcerias e informações gerais',
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/20',
-  },
-  {
-    icon: FaInstagram,
-    label: 'Instagram',
-    value: '@wolvesutfcp',
-    href: 'https://instagram.com/wolvesutfcp',
-    description: 'Acompanhe fotos, treinos e jogos',
-    color: 'text-pink-400',
-    bg: 'bg-pink-500/10 border-pink-500/20',
-  },
-  {
-    icon: FaWhatsapp,
-    label: 'WhatsApp',
-    value: 'Fale com a gente',
-    href: 'https://wa.me/5543999999999', // substitua pelo número real
-    description: 'Atendimento rápido pelo WhatsApp',
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/20',
-  },
-  {
-    icon: FaMapMarkerAlt,
-    label: 'Endereço',
-    value: 'UTFPR — Campus Cornélio Procópio',
-    sub: 'Av. Alberto Carazzai, 1640 · Cornélio Procópio, PR',
-    href: 'https://maps.google.com/?q=UTFPR+Cornélio+Procópio',
-    description: 'Encontre-nos no campus',
-    color: 'text-orange-400',
-    bg: 'bg-orange-500/10 border-orange-500/20',
-  },
-]
+const defaults = {
+  email: 'wolvescp.utfpr@gmail.com',
+  instagram: 'wolvesutfcp',
+  whatsapp: '5543999999999',
+  endereco: 'UTFPR — Campus Cornélio Procópio',
+  enderecoSub: 'Av. Alberto Carazzai, 1640 · Cornélio Procópio, PR',
+}
 
 export default function ContatoPage() {
+  const [info, setInfo] = useState(defaults)
+
+  useEffect(() => {
+    getDoc(doc(db, 'config', 'contato')).then(snap => {
+      if (snap.exists()) setInfo({ ...defaults, ...snap.data() })
+    })
+  }, [])
+
+  const contacts = [
+    {
+      icon: FaEnvelope,
+      label: 'E-mail',
+      value: info.email,
+      href: `mailto:${info.email}`,
+      description: 'Dúvidas, parcerias e informações gerais',
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10 border-blue-500/20',
+    },
+    {
+      icon: FaInstagram,
+      label: 'Instagram',
+      value: `@${info.instagram}`,
+      href: `https://instagram.com/${info.instagram}`,
+      description: 'Acompanhe fotos, treinos e jogos',
+      color: 'text-pink-400',
+      bg: 'bg-pink-500/10 border-pink-500/20',
+    },
+    {
+      icon: FaWhatsapp,
+      label: 'WhatsApp',
+      value: 'Fale com a gente',
+      href: `https://wa.me/${info.whatsapp}`,
+      description: 'Atendimento rápido pelo WhatsApp',
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10 border-emerald-500/20',
+    },
+    {
+      icon: FaMapMarkerAlt,
+      label: 'Endereço',
+      value: info.endereco,
+      sub: info.enderecoSub,
+      href: `https://maps.google.com/?q=${encodeURIComponent(info.endereco)}`,
+      description: 'Encontre-nos no campus',
+      color: 'text-orange-400',
+      bg: 'bg-orange-500/10 border-orange-500/20',
+    },
+  ]
+
   return (
     <div className="page-enter pt-8 pb-20 px-6 max-w-5xl mx-auto w-full">
       <div className="mb-12">

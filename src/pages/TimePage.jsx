@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { db } from '../firebase'
+import { FaUserTie } from 'react-icons/fa'
 
 const positions = ['Quarterback', 'Linemen', 'Wide Receiver / TE', 'Running Back', 'Defesa', 'Safety', 'Cornerback', 'Linebacker', 'Kicker']
 
@@ -64,6 +65,7 @@ export default function TimePage() {
   const [loading, setLoading] = useState(true)
 
   const [formacoes, setFormacoes] = useState([])
+  const [diretoria, setDiretoria] = useState([])
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +77,9 @@ export default function TimePage() {
 
         const fSnap = await getDocs(collection(db, 'formacoes'))
         setFormacoes(fSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+
+        const dSnap = await getDocs(query(collection(db, 'diretoria'), orderBy('criadoEm', 'asc')))
+        setDiretoria(dSnap.docs.map(d => ({ id: d.id, ...d.data() })))
       } catch {
         setPlayers(staticPlayers)
       }
@@ -90,6 +95,39 @@ export default function TimePage() {
         <h1 className="text-4xl md:text-5xl font-black text-white mt-2">O Time</h1>
         <p className="text-gray-400 mt-3">Conheça os atletas que vestem o uniforme do Wolves UTFPR-CP.</p>
       </div>
+
+      {/* Diretoria */}
+      {diretoria.length > 0 && (
+        <div className="mb-16">
+          <h2 className="text-xl font-bold text-gray-300 uppercase tracking-widest border-b border-white/10 pb-3 mb-8 flex items-center gap-3">
+            <FaUserTie size={16} className="text-[#0c4dbe]" /> Diretoria
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {diretoria.map(m => (
+              <div key={m.id} className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden card-hover flex flex-col">
+                {/* Foto de capa */}
+                <div className="relative h-40 bg-gradient-to-br from-[#0c4dbe]/30 to-[#080808] flex items-center justify-center">
+                  {m.url
+                    ? <img src={m.url} alt={m.nome} className="w-full h-full object-cover object-top" />
+                    : <span className="text-6xl font-black text-[#0c4dbe]/40">{m.nome?.[0]}</span>
+                  }
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent" />
+                </div>
+                {/* Conteúdo */}
+                <div className="px-5 pb-5 -mt-4 relative z-10 flex flex-col flex-1">
+                  <span className="inline-block bg-[#0c4dbe] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest mb-3 w-fit">
+                    {m.cargo}
+                  </span>
+                  <h3 className="text-white font-black text-lg mb-2">{m.nome}</h3>
+                  {m.bio && (
+                    <p className="text-gray-400 text-sm leading-relaxed">{m.bio}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Formações */}
       {formacoes.length > 0 && (
