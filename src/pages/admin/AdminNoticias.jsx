@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { collection, addDoc, getDocs, deleteDoc, doc, orderBy, query } from 'firebase/firestore'
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, orderBy, query } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../../firebase'
-import { FaTrash, FaPlus, FaImage, FaTimes } from 'react-icons/fa'
+import { FaTrash, FaPlus, FaImage, FaTimes, FaStar } from 'react-icons/fa'
 
-const empty = { titulo: '', resumo: '', conteudo: '', categoria: 'JOGO' }
+const empty = { titulo: '', resumo: '', conteudo: '', categoria: 'JOGO', destaque: false }
+const MAX_IMG_SIZE = 5 * 1024 * 1024
 
 export default function AdminNoticias() {
   const [noticias, setNoticias] = useState([])
@@ -14,11 +15,16 @@ export default function AdminNoticias() {
   const [progress, setProgress] = useState(0)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
 
   const load = async () => {
-    const q = query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'))
-    const snap = await getDocs(q)
-    setNoticias(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    try {
+      const q = query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'))
+      const snap = await getDocs(q)
+      setNoticias(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch {
+      setError('Erro ao carregar notícias. Tente recarregar a página.')
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -26,6 +32,15 @@ export default function AdminNoticias() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Apenas imagens são permitidas.')
+      return
+    }
+    if (file.size > MAX_IMG_SIZE) {
+      setError('A imagem deve ter no máximo 5 MB.')
+      return
+    }
+    setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
   }
@@ -50,34 +65,58 @@ export default function AdminNoticias() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
-    let imgData = {}
-    if (imgFile) {
-      imgData = await uploadImg(imgFile)
+    try {
+      let imgData = {}
+      if (imgFile) {
+        imgData = await uploadImg(imgFile)
+      }
+      await addDoc(collection(db, 'noticias'), { ...form, ...imgData, criadoEm: new Date() })
+      setForm(empty)
+      clearImg()
+      setProgress(0)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      await load()
+    } catch {
+      setError('Erro ao publicar notícia. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
-    await addDoc(collection(db, 'noticias'), { ...form, ...imgData, criadoEm: new Date() })
-    setForm(empty)
-    clearImg()
-    setProgress(0)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-    await load()
-    setLoading(false)
+  }
+
+  const toggleDestaque = async (n) => {
+    try {
+      await updateDoc(doc(db, 'noticias', n.id), { destaque: !n.destaque })
+      await load()
+    } catch {
+      setError('Erro ao atualizar destaque. Tente novamente.')
+    }
   }
 
   const handleDelete = async (n) => {
     if (!confirm('Remover esta notícia?')) return
-    if (n.storageRef) {
-      try { await deleteObject(ref(storage, n.storageRef)) } catch {}
+    try {
+      if (n.storageRef) {
+        try { await deleteObject(ref(storage, n.storageRef)) } catch {}
+      }
+      await deleteDoc(doc(db, 'noticias', n.id))
+      await load()
+    } catch {
+      setError('Erro ao remover notícia. Tente novamente.')
     }
-    await deleteDoc(doc(db, 'noticias', n.id))
-    await load()
   }
 
   return (
     <div className="space-y-8">
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Nova Notícia</h2>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
             Notícia publicada com sucesso!
@@ -125,9 +164,11 @@ export default function AdminNoticias() {
             />
           </div>
 
-          {/* Image upload */}
           <div>
-            <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-2">Imagem de capa (opcional)</label>
+            <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-2">
+              Imagem de capa (opcional)
+              <span className="normal-case tracking-normal font-normal text-gray-600 ml-2">— recomendado: horizontal 16:9 (ex: 1280×720)</span>
+            </label>
             {imgPreview ? (
               <div className="relative w-full rounded-xl overflow-hidden border border-white/10">
                 <img src={imgPreview} alt="preview" className="w-full max-h-48 object-cover" />
@@ -145,6 +186,19 @@ export default function AdminNoticias() {
             )}
           </div>
 
+          <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+            <input
+              type="checkbox"
+              checked={form.destaque}
+              onChange={e => setForm(f => ({ ...f, destaque: e.target.checked }))}
+              className="w-4 h-4 rounded accent-yellow-400"
+            />
+            <span className="text-gray-300 text-sm flex items-center gap-1.5">
+              <FaStar size={12} className="text-yellow-400" />
+              Destaque no carrossel da Home
+            </span>
+          </label>
+
           {loading && imgFile && (
             <div className="w-full bg-black rounded-full h-1.5">
               <div className="bg-[#0c4dbe] h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
@@ -159,7 +213,6 @@ export default function AdminNoticias() {
         </form>
       </div>
 
-      {/* List */}
       <div className="space-y-3">
         <h3 className="text-gray-400 text-xs uppercase tracking-widest font-semibold">Notícias publicadas ({noticias.length})</h3>
         {noticias.length === 0 && <p className="text-gray-600 text-sm">Nenhuma notícia publicada ainda.</p>}
@@ -170,14 +223,31 @@ export default function AdminNoticias() {
             )}
             <div className="flex-1 px-5 py-4 flex items-start justify-between gap-4">
               <div>
-                <span className="text-[#0c4dbe] text-[10px] font-bold uppercase tracking-widest">{n.categoria}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#0c4dbe] text-[10px] font-bold uppercase tracking-widest">{n.categoria}</span>
+                  {n.destaque && (
+                    <span className="flex items-center gap-1 text-yellow-400 text-[10px] font-bold uppercase tracking-widest">
+                      <FaStar size={9} /> Destaque
+                    </span>
+                  )}
+                </div>
                 <p className="text-white font-semibold text-sm mt-0.5">{n.titulo}</p>
                 <p className="text-gray-500 text-xs mt-1">{n.resumo}</p>
               </div>
-              <button onClick={() => handleDelete(n)}
-                className="text-gray-600 hover:text-red-400 transition-colors shrink-0 mt-1">
-                <FaTrash size={13} />
-              </button>
+              <div className="flex items-center gap-2 shrink-0 mt-1">
+                <button
+                  onClick={() => toggleDestaque(n)}
+                  aria-label={n.destaque ? `Remover destaque de ${n.titulo}` : `Destacar ${n.titulo} no carrossel`}
+                  title={n.destaque ? 'Remover do carrossel' : 'Destacar no carrossel'}
+                  className={`transition-colors ${n.destaque ? 'text-yellow-400 hover:text-yellow-200' : 'text-gray-600 hover:text-yellow-400'}`}
+                >
+                  <FaStar size={13} />
+                </button>
+                <button onClick={() => handleDelete(n)} aria-label={`Remover notícia ${n.titulo}`}
+                  className="text-gray-600 hover:text-red-400 transition-colors">
+                  <FaTrash size={13} />
+                </button>
+              </div>
             </div>
           </div>
         ))}

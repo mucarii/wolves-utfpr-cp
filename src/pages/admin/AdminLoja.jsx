@@ -7,6 +7,7 @@ import { FaTrash, FaPlus, FaImage, FaTimes, FaEdit, FaCheck } from 'react-icons/
 const categories = ['Uniforme', 'Treino', 'Acessório', 'Equipamento', 'Outro']
 const badges = ['', 'Lançamento', 'Mais Vendido', 'Novo', 'Promoção', 'Últimas unidades']
 const empty = { nome: '', preco: '', categoria: 'Uniforme', badge: '', descricao: '' }
+const MAX_IMG_SIZE = 5 * 1024 * 1024
 
 export default function AdminLoja() {
   const [produtos, setProdutos] = useState([])
@@ -16,13 +17,18 @@ export default function AdminLoja() {
   const [progress, setProgress] = useState(0)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
   const [editingPrice, setEditingPrice] = useState(null)
   const [newPrice, setNewPrice] = useState('')
 
   const load = async () => {
-    const q = query(collection(db, 'produtos'), orderBy('criadoEm', 'desc'))
-    const snap = await getDocs(q)
-    setProdutos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    try {
+      const q = query(collection(db, 'produtos'), orderBy('criadoEm', 'desc'))
+      const snap = await getDocs(q)
+      setProdutos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch {
+      setError('Erro ao carregar produtos. Tente recarregar a página.')
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -30,6 +36,15 @@ export default function AdminLoja() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Apenas imagens são permitidas.')
+      return
+    }
+    if (file.size > MAX_IMG_SIZE) {
+      setError('A imagem deve ter no máximo 5 MB.')
+      return
+    }
+    setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
   }
@@ -51,41 +66,59 @@ export default function AdminLoja() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
-    let imgData = {}
-    if (imgFile) imgData = await uploadImg(imgFile)
-    await addDoc(collection(db, 'produtos'), { ...form, ...imgData, criadoEm: new Date() })
-    setForm(empty)
-    clearImg()
-    setProgress(0)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-    await load()
-    setLoading(false)
+    try {
+      let imgData = {}
+      if (imgFile) imgData = await uploadImg(imgFile)
+      await addDoc(collection(db, 'produtos'), { ...form, ...imgData, criadoEm: new Date() })
+      setForm(empty)
+      clearImg()
+      setProgress(0)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      await load()
+    } catch {
+      setError('Erro ao adicionar produto. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDelete = async (p) => {
     if (!confirm(`Remover "${p.nome}"?`)) return
-    if (p.storageRef) {
-      try { await deleteObject(ref(storage, p.storageRef)) } catch {}
+    try {
+      if (p.storageRef) {
+        try { await deleteObject(ref(storage, p.storageRef)) } catch {}
+      }
+      await deleteDoc(doc(db, 'produtos', p.id))
+      await load()
+    } catch {
+      setError('Erro ao remover produto. Tente novamente.')
     }
-    await deleteDoc(doc(db, 'produtos', p.id))
-    await load()
   }
 
   const handleSavePrice = async (id) => {
     if (!newPrice) return
-    await updateDoc(doc(db, 'produtos', id), { preco: newPrice })
-    setEditingPrice(null)
-    setNewPrice('')
-    await load()
+    try {
+      await updateDoc(doc(db, 'produtos', id), { preco: newPrice })
+      setEditingPrice(null)
+      setNewPrice('')
+      await load()
+    } catch {
+      setError('Erro ao atualizar preço. Tente novamente.')
+    }
   }
 
   return (
     <div className="space-y-8">
-      {/* Form */}
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Novo Produto</h2>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
             Produto adicionado com sucesso!
@@ -169,7 +202,6 @@ export default function AdminLoja() {
         </form>
       </div>
 
-      {/* Product list */}
       <div className="space-y-3">
         <h3 className="text-gray-400 text-xs uppercase tracking-widest font-semibold">Produtos na loja ({produtos.length})</h3>
         {produtos.length === 0 && <p className="text-gray-600 text-sm">Nenhum produto cadastrado ainda.</p>}
@@ -192,7 +224,6 @@ export default function AdminLoja() {
                 <p className="text-gray-500 text-xs">{p.categoria}</p>
               </div>
 
-              {/* Editable price */}
               <div className="flex items-center gap-2 shrink-0">
                 {editingPrice === p.id ? (
                   <>

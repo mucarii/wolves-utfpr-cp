@@ -5,6 +5,7 @@ import { db, storage } from '../../firebase'
 import { FaTrash, FaCloudUploadAlt } from 'react-icons/fa'
 
 const albums = ['Time', 'Wolves nas Escolas', 'Wolves na APAE', 'Jogos', 'Treinos', 'Geral']
+const MAX_IMG_SIZE = 5 * 1024 * 1024
 
 export default function AdminFotos() {
   const [fotos, setFotos] = useState([])
@@ -13,64 +14,99 @@ export default function AdminFotos() {
   const [progress, setProgress] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
 
   const load = async () => {
-    const q = query(collection(db, 'fotos'), orderBy('criadoEm', 'desc'))
-    const snap = await getDocs(q)
-    setFotos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    try {
+      const q = query(collection(db, 'fotos'), orderBy('criadoEm', 'desc'))
+      const snap = await getDocs(q)
+      setFotos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch {
+      setError('Erro ao carregar fotos. Tente recarregar a página.')
+    }
   }
 
   useEffect(() => { load() }, [])
 
+  const handleFilesChange = (e) => {
+    const selected = Array.from(e.target.files)
+    const invalid = selected.filter(f => !f.type.startsWith('image/'))
+    const oversized = selected.filter(f => f.size > MAX_IMG_SIZE)
+    if (invalid.length) {
+      setError('Apenas imagens são permitidas.')
+      return
+    }
+    if (oversized.length) {
+      setError(`${oversized.length} arquivo(s) excedem o limite de 5 MB.`)
+      return
+    }
+    setError(null)
+    setFiles(selected)
+  }
+
   const handleUpload = async (e) => {
     e.preventDefault()
     if (!files.length) return
+    setError(null)
     setUploading(true)
     setProgress(0)
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const storageRef = ref(storage, `fotos/${album}/${Date.now()}_${file.name}`)
-      await new Promise((resolve, reject) => {
-        const task = uploadBytesResumable(storageRef, file)
-        task.on('state_changed',
-          snap => setProgress(Math.round(((i + snap.bytesTransferred / snap.totalBytes) / files.length) * 100)),
-          reject,
-          async () => {
-            const url = await getDownloadURL(task.snapshot.ref)
-            await addDoc(collection(db, 'fotos'), {
-              url, album, nome: file.name,
-              storageRef: storageRef.fullPath,
-              criadoEm: new Date(),
-            })
-            resolve()
-          }
-        )
-      })
-    }
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const storageRef = ref(storage, `fotos/${album}/${Date.now()}_${file.name}`)
+        await new Promise((resolve, reject) => {
+          const task = uploadBytesResumable(storageRef, file)
+          task.on('state_changed',
+            snap => setProgress(Math.round(((i + snap.bytesTransferred / snap.totalBytes) / files.length) * 100)),
+            reject,
+            async () => {
+              const url = await getDownloadURL(task.snapshot.ref)
+              await addDoc(collection(db, 'fotos'), {
+                url, album, nome: file.name,
+                storageRef: storageRef.fullPath,
+                criadoEm: new Date(),
+              })
+              resolve()
+            }
+          )
+        })
+      }
 
-    setFiles([])
-    setProgress(0)
-    setUploading(false)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-    await load()
+      setFiles([])
+      setProgress(0)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      await load()
+    } catch {
+      setError('Erro ao enviar fotos. Tente novamente.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleDelete = async (foto) => {
     if (!confirm('Remover esta foto?')) return
-    try { await deleteObject(ref(storage, foto.storageRef)) } catch {}
-    await deleteDoc(doc(db, 'fotos', foto.id))
-    await load()
+    try {
+      try { await deleteObject(ref(storage, foto.storageRef)) } catch {}
+      await deleteDoc(doc(db, 'fotos', foto.id))
+      await load()
+    } catch {
+      setError('Erro ao remover foto. Tente novamente.')
+    }
   }
 
   const filtered = fotos.filter(f => f.album === album)
 
   return (
     <div className="space-y-8">
-      {/* Upload form */}
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Upload de Fotos</h2>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
             Fotos enviadas com sucesso!
@@ -88,7 +124,7 @@ export default function AdminFotos() {
           </div>
           <div>
             <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-2">
-              Fotos (pode selecionar várias)
+              Fotos (pode selecionar várias — máx. 5 MB cada)
             </label>
             <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-white/20 rounded-xl py-8 cursor-pointer hover:border-[#0c4dbe]/60 transition-colors">
               <FaCloudUploadAlt size={32} className="text-gray-500 mb-2" />
@@ -96,7 +132,7 @@ export default function AdminFotos() {
                 {files.length ? `${files.length} arquivo(s) selecionado(s)` : 'Clique para selecionar fotos'}
               </span>
               <input type="file" multiple accept="image/*" className="hidden"
-                onChange={e => setFiles(Array.from(e.target.files))} />
+                onChange={handleFilesChange} />
             </label>
           </div>
           {uploading && (
@@ -112,7 +148,6 @@ export default function AdminFotos() {
         </form>
       </div>
 
-      {/* Gallery */}
       <div>
         <div className="flex gap-2 mb-5 flex-wrap">
           {albums.map(a => (

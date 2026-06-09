@@ -5,6 +5,7 @@ import { db, storage } from '../../firebase'
 import { FaTrash, FaPlus, FaImage, FaTimes } from 'react-icons/fa'
 
 const empty = { titulo: '', descricao: '', data: '', horario: '', local: '', tipo: 'JOGO' }
+const MAX_IMG_SIZE = 5 * 1024 * 1024
 
 export default function AdminEventos() {
   const [eventos, setEventos] = useState([])
@@ -14,11 +15,16 @@ export default function AdminEventos() {
   const [progress, setProgress] = useState(0)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
 
   const load = async () => {
-    const q = query(collection(db, 'eventos'), orderBy('data', 'desc'))
-    const snap = await getDocs(q)
-    setEventos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    try {
+      const q = query(collection(db, 'eventos'), orderBy('data', 'desc'))
+      const snap = await getDocs(q)
+      setEventos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch {
+      setError('Erro ao carregar eventos. Tente recarregar a página.')
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -26,6 +32,15 @@ export default function AdminEventos() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Apenas imagens são permitidas.')
+      return
+    }
+    if (file.size > MAX_IMG_SIZE) {
+      setError('A imagem deve ter no máximo 5 MB.')
+      return
+    }
+    setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
   }
@@ -50,34 +65,49 @@ export default function AdminEventos() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
-    let imgData = {}
-    if (imgFile) {
-      imgData = await uploadImg(imgFile)
+    try {
+      let imgData = {}
+      if (imgFile) {
+        imgData = await uploadImg(imgFile)
+      }
+      await addDoc(collection(db, 'eventos'), { ...form, ...imgData, criadoEm: new Date() })
+      setForm(empty)
+      clearImg()
+      setProgress(0)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      await load()
+    } catch {
+      setError('Erro ao criar evento. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
-    await addDoc(collection(db, 'eventos'), { ...form, ...imgData, criadoEm: new Date() })
-    setForm(empty)
-    clearImg()
-    setProgress(0)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-    await load()
-    setLoading(false)
   }
 
   const handleDelete = async (ev) => {
     if (!confirm('Remover este evento?')) return
-    if (ev.storageRef) {
-      try { await deleteObject(ref(storage, ev.storageRef)) } catch {}
+    try {
+      if (ev.storageRef) {
+        try { await deleteObject(ref(storage, ev.storageRef)) } catch {}
+      }
+      await deleteDoc(doc(db, 'eventos', ev.id))
+      await load()
+    } catch {
+      setError('Erro ao remover evento. Tente novamente.')
     }
-    await deleteDoc(doc(db, 'eventos', ev.id))
-    await load()
   }
 
   return (
     <div className="space-y-8">
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Novo Evento</h2>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
             Evento criado com sucesso!
@@ -140,7 +170,6 @@ export default function AdminEventos() {
             />
           </div>
 
-          {/* Image upload */}
           <div>
             <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-2">Imagem (opcional)</label>
             {imgPreview ? (

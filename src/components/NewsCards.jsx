@@ -3,15 +3,7 @@ import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore'
 import { db } from '../firebase'
 import { FaArrowRight, FaCalendarAlt, FaTags } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
-
-const catBadge = {
-  JOGO: 'bg-blue-600',
-  TREINO: 'bg-gray-600',
-  EVENTO: 'bg-indigo-600',
-  'FLAG FOOTBALL': 'bg-emerald-600',
-  'EXTENSÃO': 'bg-orange-600',
-  GERAL: 'bg-gray-600',
-}
+import { CAT_BADGE } from '../constants'
 
 function formatDate(val) {
   if (!val) return ''
@@ -28,7 +20,7 @@ function NewsCard({ item }) {
           ? <img src={item.url} alt={item.titulo} className="absolute inset-0 w-full h-full object-cover" />
           : <div className="text-6xl opacity-20 font-black text-white">W</div>
         }
-        <span className={`absolute top-4 left-4 ${catBadge[item.categoria] || 'bg-gray-600'} text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1 z-10`}>
+        <span className={`absolute top-4 left-4 ${CAT_BADGE[item.categoria] || 'bg-gray-600'} text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1 z-10`}>
           <FaTags size={9} />
           {item.categoria}
         </span>

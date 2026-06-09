@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { FaEnvelope, FaInstagram, FaWhatsapp, FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa'
+import { FaEnvelope, FaInstagram, FaWhatsapp, FaMapMarkerAlt, FaExternalLinkAlt, FaPaperPlane } from 'react-icons/fa'
 
 const defaults = {
   email: 'wolvescp.utfpr@gmail.com',
@@ -11,8 +11,11 @@ const defaults = {
   enderecoSub: 'Av. Alberto Carazzai, 1640 · Cornélio Procópio, PR',
 }
 
+const emptyForm = { nome: '', email: '', assunto: '', mensagem: '' }
+
 export default function ContatoPage() {
   const [info, setInfo] = useState(defaults)
+  const [form, setForm] = useState(emptyForm)
 
   useEffect(() => {
     getDoc(doc(db, 'config', 'contato')).then(snap => {
@@ -60,6 +63,25 @@ export default function ContatoPage() {
     },
   ]
 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const lines = [
+      `*Mensagem via site — Wolves UTFPR-CP*`,
+      ``,
+      `*Nome:* ${form.nome}`,
+      form.email ? `*E-mail:* ${form.email}` : null,
+      form.assunto ? `*Assunto:* ${form.assunto}` : null,
+      ``,
+      form.mensagem,
+    ].filter(l => l !== null).join('\n')
+
+    window.open(`https://wa.me/${info.whatsapp}?text=${encodeURIComponent(lines)}`, '_blank')
+    setForm(emptyForm)
+  }
+
+  const inputClass = "w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#0c4dbe] transition-colors"
+  const labelClass = "text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-2"
+
   return (
     <div className="page-enter pt-8 pb-20 px-6 max-w-5xl mx-auto w-full">
       <div className="mb-12">
@@ -91,6 +113,72 @@ export default function ContatoPage() {
             <FaExternalLinkAlt size={12} className="text-gray-600 group-hover:text-gray-400 transition-colors mt-1 shrink-0" />
           </a>
         ))}
+      </div>
+
+      {/* Formulário */}
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 mb-12">
+        <div className="mb-6">
+          <h2 className="text-white font-black text-xl">Envie uma mensagem</h2>
+          <p className="text-gray-500 text-sm mt-1">Preencha o formulário e será redirecionado para o nosso WhatsApp.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Nome</label>
+              <input
+                type="text"
+                required
+                value={form.nome}
+                onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                placeholder="Seu nome"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>E-mail <span className="text-gray-600 normal-case tracking-normal font-normal">(opcional)</span></label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="seu@email.com"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Assunto <span className="text-gray-600 normal-case tracking-normal font-normal">(opcional)</span></label>
+            <input
+              type="text"
+              value={form.assunto}
+              onChange={e => setForm(f => ({ ...f, assunto: e.target.value }))}
+              placeholder="Ex: Quero entrar para o time, Parceria..."
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Mensagem</label>
+            <textarea
+              required
+              rows={5}
+              value={form.mensagem}
+              onChange={e => setForm(f => ({ ...f, mensagem: e.target.value }))}
+              placeholder="Escreva sua mensagem aqui..."
+              className={`${inputClass} resize-none`}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-colors"
+          >
+            <FaWhatsapp size={16} />
+            Enviar pelo WhatsApp
+            <FaPaperPlane size={12} />
+          </button>
+        </form>
       </div>
 
       {/* Mapa */}

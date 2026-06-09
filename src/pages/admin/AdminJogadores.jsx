@@ -3,8 +3,9 @@ import { collection, addDoc, getDocs, deleteDoc, doc, orderBy, query, setDoc } f
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../../firebase'
 import { FaTrash, FaPlus, FaImage, FaTimes, FaFootballBall, FaEdit } from 'react-icons/fa'
+import { POSITIONS } from '../../constants'
 
-const positions = ['Quarterback', 'Linemen', 'Wide Receiver / TE', 'Running Back', 'Defesa', 'Safety', 'Cornerback', 'Linebacker', 'Kicker']
+const positions = POSITIONS
 const emptyPlayer = { nome: '', numero: '', posicao: 'Quarterback', modalidade: 'Full Pad' }
 const emptyFormacao = { nome: '', tipo: 'Ofensiva', linhas: ['', '', ''] }
 
@@ -250,10 +251,15 @@ function AdminFormacoesTab() {
   const [form, setForm] = useState(emptyFormacao)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState(null)
 
   const load = async () => {
-    const snap = await getDocs(collection(db, 'formacoes'))
-    setFormacoes(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    try {
+      const snap = await getDocs(collection(db, 'formacoes'))
+      setFormacoes(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch {
+      setError('Erro ao carregar formações. Tente recarregar a página.')
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -271,6 +277,7 @@ function AdminFormacoesTab() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
     try {
       const linhasFormatadas = form.linhas.map(l =>
@@ -281,8 +288,8 @@ function AdminFormacoesTab() {
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
       await load()
-    } catch (err) {
-      alert('Erro ao salvar formação: ' + err.message)
+    } catch {
+      setError('Erro ao salvar formação. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -290,8 +297,12 @@ function AdminFormacoesTab() {
 
   const handleDelete = async (id) => {
     if (!confirm('Remover esta formação?')) return
-    await deleteDoc(doc(db, 'formacoes', id))
-    await load()
+    try {
+      await deleteDoc(doc(db, 'formacoes', id))
+      await load()
+    } catch {
+      setError('Erro ao remover formação. Tente novamente.')
+    }
   }
 
   return (
@@ -299,6 +310,11 @@ function AdminFormacoesTab() {
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-black text-lg mb-2 uppercase tracking-wide">Nova Formação</h2>
         <p className="text-gray-500 text-xs mb-5">Em cada linha, separe as posições por vírgula. Use espaço vazio para células vazias (ex: <span className="text-gray-300">WR, , , QB, , , </span>)</p>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
             Formação salva!

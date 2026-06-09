@@ -1,25 +1,8 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore'
 import { db } from '../firebase'
 import { FaCalendarAlt, FaArrowRight, FaSearch, FaTimes } from 'react-icons/fa'
-
-const catBadge = {
-  JOGO: 'bg-blue-600',
-  TREINO: 'bg-gray-600',
-  EVENTO: 'bg-indigo-600',
-  'FLAG FOOTBALL': 'bg-emerald-600',
-  'EXTENSÃO': 'bg-orange-600',
-  GERAL: 'bg-gray-600',
-}
-
-const catBg = {
-  JOGO: 'from-blue-900 to-blue-950',
-  TREINO: 'from-gray-800 to-gray-950',
-  EVENTO: 'from-indigo-900 to-indigo-950',
-  'FLAG FOOTBALL': 'from-emerald-900 to-emerald-950',
-  'EXTENSÃO': 'from-orange-900 to-orange-950',
-  GERAL: 'from-gray-800 to-gray-950',
-}
+import { CAT_BADGE, CAT_BG } from '../constants'
 
 function formatDate(val) {
   if (!val) return ''
@@ -58,13 +41,13 @@ function NoticiaModal({ noticia, onClose }) {
             >
               <FaTimes size={16} />
             </button>
-            <span className={`absolute top-4 left-4 ${catBadge[noticia.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
+            <span className={`absolute top-4 left-4 ${CAT_BADGE[noticia.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
               {noticia.categoria}
             </span>
           </div>
         ) : (
-          <div className={`relative w-full h-24 bg-gradient-to-br ${catBg[noticia.categoria] || 'from-gray-800 to-gray-950'} rounded-t-2xl flex items-center px-6`}>
-            <span className={`${catBadge[noticia.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
+          <div className={`relative w-full h-24 bg-gradient-to-br ${CAT_BG[noticia.categoria] || 'from-gray-800 to-gray-950'} rounded-t-2xl flex items-center px-6`}>
+            <span className={`${CAT_BADGE[noticia.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full`}>
               {noticia.categoria}
             </span>
             <button
@@ -101,16 +84,22 @@ function NoticiaModal({ noticia, onClose }) {
 export default function NoticiasPage() {
   const [noticias, setNoticias] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
     const load = async () => {
-      const q = query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'))
-      const snap = await getDocs(q)
-      setNoticias(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-      setLoading(false)
+      try {
+        const q = query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'), limit(200))
+        const snap = await getDocs(q)
+        setNoticias(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      } catch {
+        setError('Não foi possível carregar as notícias. Tente recarregar a página.')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
@@ -166,7 +155,13 @@ export default function NoticiasPage() {
         </div>
       )}
 
-      {!loading && noticias.length === 0 && (
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-5 py-4 mb-6">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && noticias.length === 0 && (
         <p className="text-gray-500 text-center py-20">Nenhuma notícia publicada ainda.</p>
       )}
 
@@ -180,12 +175,12 @@ export default function NoticiasPage() {
           {featured && (
             <div
               onClick={() => setSelected(featured)}
-              className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${catBg[featured.categoria] || 'from-gray-800 to-gray-950'} h-72 flex items-end p-8 mb-8 card-hover cursor-pointer group`}
+              className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${CAT_BG[featured.categoria] || 'from-gray-800 to-gray-950'} h-72 flex items-end p-8 mb-8 card-hover cursor-pointer group`}
             >
               {featured.url && (
-                <img src={featured.url} alt={featured.titulo} className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                <img src={featured.url} alt={featured.titulo} loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-40" />
               )}
-              <span className={`absolute top-5 left-5 ${catBadge[featured.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full z-10`}>
+              <span className={`absolute top-5 left-5 ${CAT_BADGE[featured.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-3 py-1 rounded-full z-10`}>
                 {featured.categoria}
               </span>
               <div className="relative z-10">
@@ -209,12 +204,12 @@ export default function NoticiasPage() {
               <div
                 key={n.id}
                 onClick={() => setSelected(n)}
-                className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${catBg[n.categoria] || 'from-gray-800 to-gray-950'} h-56 flex items-end p-5 card-hover cursor-pointer group`}
+                className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${CAT_BG[n.categoria] || 'from-gray-800 to-gray-950'} h-56 flex items-end p-5 card-hover cursor-pointer group`}
               >
                 {n.url && (
-                  <img src={n.url} alt={n.titulo} className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                  <img src={n.url} alt={n.titulo} loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-30" />
                 )}
-                <span className={`absolute top-4 left-4 ${catBadge[n.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-2.5 py-0.5 rounded-full z-10`}>
+                <span className={`absolute top-4 left-4 ${CAT_BADGE[n.categoria] || 'bg-gray-600'} text-white text-xs font-bold px-2.5 py-0.5 rounded-full z-10`}>
                   {n.categoria}
                 </span>
                 <div className="relative z-10">

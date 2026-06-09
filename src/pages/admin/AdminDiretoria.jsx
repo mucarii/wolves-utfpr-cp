@@ -5,6 +5,7 @@ import { db, storage } from '../../firebase'
 import { FaTrash, FaPlus, FaImage, FaTimes, FaEdit, FaSave } from 'react-icons/fa'
 
 const empty = { nome: '', cargo: '', bio: '' }
+const MAX_IMG_SIZE = 5 * 1024 * 1024
 
 export default function AdminDiretoria() {
   const [membros, setMembros] = useState([])
@@ -15,10 +16,16 @@ export default function AdminDiretoria() {
   const [imgPreview, setImgPreview] = useState(null)
   const [progress, setProgress] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
 
   const load = async () => {
-    const snap = await getDocs(query(collection(db, 'diretoria'), orderBy('criadoEm', 'asc')))
-    setMembros(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    try {
+      const snap = await getDocs(query(collection(db, 'diretoria'), orderBy('criadoEm', 'asc')))
+      setMembros(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch {
+      setError('Erro ao carregar membros. Tente recarregar a página.')
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -26,6 +33,15 @@ export default function AdminDiretoria() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Apenas imagens são permitidas.')
+      return
+    }
+    if (file.size > MAX_IMG_SIZE) {
+      setError('A imagem deve ter no máximo 5 MB.')
+      return
+    }
+    setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
   }
@@ -51,6 +67,7 @@ export default function AdminDiretoria() {
     setForm({ nome: m.nome, cargo: m.cargo, bio: m.bio || '' })
     setImgPreview(m.url || null)
     setImgFile(null)
+    setError(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -59,42 +76,55 @@ export default function AdminDiretoria() {
     setEditingStorageRef(null)
     setForm(empty)
     clearImg()
+    setError(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
-    let imgData = {}
-    if (imgFile) {
-      if (editingStorageRef) try { await deleteObject(ref(storage, editingStorageRef)) } catch {}
-      imgData = await uploadImg(imgFile)
-    } else if (editingId && !imgPreview) {
-      imgData = { url: null, storageRef: null }
-    }
+    try {
+      let imgData = {}
+      if (imgFile) {
+        if (editingStorageRef) try { await deleteObject(ref(storage, editingStorageRef)) } catch {}
+        imgData = await uploadImg(imgFile)
+      } else if (editingId && !imgPreview) {
+        imgData = { url: null, storageRef: null }
+      }
 
-    if (editingId) {
-      await updateDoc(doc(db, 'diretoria', editingId), {
-        ...form,
-        ...(Object.keys(imgData).length ? imgData : {}),
-      })
-    } else {
-      await addDoc(collection(db, 'diretoria'), {
-        ...form,
-        ...imgData,
-        criadoEm: new Date(),
-      })
-    }
+      if (editingId) {
+        await updateDoc(doc(db, 'diretoria', editingId), {
+          ...form,
+          ...(Object.keys(imgData).length ? imgData : {}),
+        })
+      } else {
+        await addDoc(collection(db, 'diretoria'), {
+          ...form,
+          ...imgData,
+          criadoEm: new Date(),
+        })
+      }
 
-    setLoading(false)
-    cancelEdit()
-    load()
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      cancelEdit()
+      await load()
+    } catch {
+      setError('Erro ao salvar. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDelete = async (m) => {
     if (!window.confirm(`Remover ${m.nome}?`)) return
-    if (m.storageRef) try { await deleteObject(ref(storage, m.storageRef)) } catch {}
-    await deleteDoc(doc(db, 'diretoria', m.id))
-    load()
+    try {
+      if (m.storageRef) try { await deleteObject(ref(storage, m.storageRef)) } catch {}
+      await deleteDoc(doc(db, 'diretoria', m.id))
+      await load()
+    } catch {
+      setError('Erro ao remover membro. Tente novamente.')
+    }
   }
 
   const isEditing = !!editingId
@@ -103,7 +133,6 @@ export default function AdminDiretoria() {
     <div className="space-y-6">
       <h2 className="text-white font-black text-xl">Diretoria</h2>
 
-      {/* Formulário */}
       <div className={`bg-[#111] border rounded-2xl p-6 ${isEditing ? 'border-[#0c4dbe]' : 'border-white/10'}`}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-white font-bold text-base">{isEditing ? 'Editar Membro' : 'Adicionar Membro'}</h3>
@@ -113,6 +142,17 @@ export default function AdminDiretoria() {
             </button>
           )}
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
+            {isEditing ? 'Membro atualizado com sucesso!' : 'Membro adicionado com sucesso!'}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
@@ -140,7 +180,6 @@ export default function AdminDiretoria() {
             </div>
           </div>
 
-          {/* Bio */}
           <div>
             <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-1">Sobre (opcional)</label>
             <textarea
@@ -152,7 +191,6 @@ export default function AdminDiretoria() {
             />
           </div>
 
-          {/* Foto */}
           <div>
             <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-1">Foto (opcional)</label>
             {imgPreview ? (
@@ -187,7 +225,6 @@ export default function AdminDiretoria() {
         </form>
       </div>
 
-      {/* Lista */}
       {membros.length > 0 && (
         <div className="bg-[#111] border border-white/10 rounded-2xl divide-y divide-white/5">
           {membros.map(m => (
@@ -203,10 +240,10 @@ export default function AdminDiretoria() {
                 <p className="text-gray-500 text-xs">{m.cargo}</p>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => startEdit(m)} className="text-gray-500 hover:text-[#0c4dbe] transition-colors">
+                <button onClick={() => startEdit(m)} aria-label={`Editar ${m.nome}`} className="text-gray-500 hover:text-[#0c4dbe] transition-colors">
                   <FaEdit size={13} />
                 </button>
-                <button onClick={() => handleDelete(m)} className="text-gray-600 hover:text-red-400 transition-colors">
+                <button onClick={() => handleDelete(m)} aria-label={`Remover ${m.nome}`} className="text-gray-600 hover:text-red-400 transition-colors">
                   <FaTrash size={13} />
                 </button>
               </div>

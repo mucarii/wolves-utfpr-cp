@@ -9,6 +9,7 @@ const defaultForm = {
   whatsapp: '',
   endereco: '',
   enderecoSub: '',
+  pix: '',
 }
 
 export default function AdminContato() {
@@ -16,22 +17,34 @@ export default function AdminContato() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const load = async () => {
-      const snap = await getDoc(doc(db, 'config', 'contato'))
-      if (snap.exists()) setForm({ ...defaultForm, ...snap.data() })
-      setLoading(false)
+      try {
+        const snap = await getDoc(doc(db, 'config', 'contato'))
+        if (snap.exists()) setForm({ ...defaultForm, ...snap.data() })
+      } catch {
+        setError('Erro ao carregar informações de contato. Tente recarregar a página.')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
 
   const handleSave = async () => {
+    setError(null)
     setSaving(true)
-    await setDoc(doc(db, 'config', 'contato'), form)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    try {
+      await setDoc(doc(db, 'config', 'contato'), form)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setError('Erro ao salvar. Tente novamente.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const field = (key, label, placeholder, hint) => (
@@ -59,11 +72,22 @@ export default function AdminContato() {
       <h2 className="text-white font-black text-xl">Informações de Contato</h2>
 
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6 space-y-5">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+            {error}
+          </div>
+        )}
+
         {field('email', 'E-mail', 'wolvescp.utfpr@gmail.com')}
         {field('instagram', 'Instagram (usuário sem @)', 'wolvesutfcp', 'Apenas o nome de usuário, ex: wolvesutfcp')}
         {field('whatsapp', 'WhatsApp (número com DDI)', '5543999999999', 'Formato: 5543999999999 (sem espaços ou traços)')}
         {field('endereco', 'Endereço — linha principal', 'UTFPR — Campus Cornélio Procópio')}
         {field('enderecoSub', 'Endereço — linha secundária', 'Av. Alberto Carazzai, 1640 · Cornélio Procópio, PR')}
+
+        <div className="border-t border-white/10 pt-5">
+          <p className="text-gray-500 text-xs uppercase tracking-widest font-semibold mb-4">Pagamento</p>
+          {field('pix', 'Chave PIX', 'email@exemplo.com, CPF, telefone ou chave aleatória', 'Exibida no checkout da loja para os clientes copiarem')}
+        </div>
 
         {saved && (
           <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm rounded-xl px-4 py-3">
