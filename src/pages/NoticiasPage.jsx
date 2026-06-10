@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore'
+import usePageTitle from '../hooks/usePageTitle'
 import { db } from '../firebase'
 import { FaCalendarAlt, FaArrowRight, FaSearch, FaTimes } from 'react-icons/fa'
 import { CAT_BADGE, CAT_BG } from '../constants'
@@ -82,6 +83,7 @@ function NoticiaModal({ noticia, onClose }) {
 }
 
 export default function NoticiasPage() {
+  usePageTitle('Notícias')
   const [noticias, setNoticias] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -108,7 +110,8 @@ export default function NoticiasPage() {
 
   const filtered = noticias.filter(n => {
     const matchCat = activeCategory === 'Todos' || n.categoria === activeCategory
-    const matchSearch = n.titulo.toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase()
+    const matchSearch = n.titulo.toLowerCase().includes(q) || (n.resumo || '').toLowerCase().includes(q)
     return matchCat && matchSearch
   })
 
@@ -150,8 +153,13 @@ export default function NoticiasPage() {
       </div>
 
       {loading && (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-2 border-[#0c4dbe] border-t-transparent rounded-full animate-spin" />
+        <div className="space-y-8">
+          <div className={`rounded-2xl overflow-hidden h-72 animate-pulse bg-white/5`} />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="rounded-xl overflow-hidden h-56 animate-pulse bg-white/5" />
+            ))}
+          </div>
         </div>
       )}
 

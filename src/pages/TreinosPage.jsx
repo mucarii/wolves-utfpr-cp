@@ -1,13 +1,28 @@
-﻿import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaFootballBall, FaUserPlus } from 'react-icons/fa'
+﻿import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+import usePageTitle from '../hooks/usePageTitle'
+import { FaClock, FaMapMarkerAlt, FaFootballBall, FaUserPlus } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
-const schedule = [
-  { day: 'Terça-feira', time: '17h30', type: 'Treino Geral', icon: FaFootballBall, color: 'bg-[#0c4dbe]' },
-  { day: 'Quinta-feira', time: '17h30', type: 'Treino Técnico', icon: FaFootballBall, color: 'bg-[#0c4dbe]' },
-  { day: 'Sábado', time: '09h00', type: 'Treino & Scrimmage', icon: FaFootballBall, color: 'bg-emerald-600' },
+const DEFAULT_SCHEDULE = [
+  { day: 'Terça-feira', time: '17h30', type: 'Treino Geral' },
+  { day: 'Quinta-feira', time: '17h30', type: 'Treino Técnico' },
+  { day: 'Sábado', time: '09h00', type: 'Treino & Scrimmage' },
 ]
 
 export default function TreinosPage() {
+  usePageTitle('Treinos')
+  const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
+
+  useEffect(() => {
+    getDoc(doc(db, 'config', 'treinos')).then(snap => {
+      if (snap.exists() && snap.data().schedule?.length) {
+        setSchedule(snap.data().schedule)
+      }
+    }).catch(() => {})
+  }, [])
+
   return (
     <div className="page-enter pt-10 pb-20 px-6 max-w-7xl mx-auto w-full">
       <div className="mb-12">
@@ -21,16 +36,16 @@ export default function TreinosPage() {
 
       {/* Schedule cards */}
       <div className="grid sm:grid-cols-3 gap-6 mb-16">
-        {schedule.map(({ day, time, type, icon: Icon, color }) => (
-          <div key={day} className="bg-[#111] border border-white/10 rounded-2xl p-8 card-hover text-center">
-            <div className={`w-16 h-16 ${color} rounded-2xl flex items-center justify-center mx-auto mb-5`}>
-              <Icon size={28} className="text-white" />
+        {schedule.map((item, i) => (
+          <div key={i} className="bg-[#111] border border-white/10 rounded-2xl p-8 card-hover text-center">
+            <div className="w-16 h-16 bg-[#0c4dbe] rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <FaFootballBall size={28} className="text-white" />
             </div>
-            <div className="text-gray-400 text-xs uppercase tracking-widest font-semibold mb-1">{type}</div>
-            <h3 className="text-white font-black text-xl mb-2">{day}</h3>
+            <div className="text-gray-400 text-xs uppercase tracking-widest font-semibold mb-1">{item.type}</div>
+            <h3 className="text-white font-black text-xl mb-2">{item.day}</h3>
             <div className="flex items-center justify-center gap-2 text-[#0c4dbe] text-2xl font-black">
               <FaClock size={18} />
-              {time}
+              {item.time}
             </div>
           </div>
         ))}

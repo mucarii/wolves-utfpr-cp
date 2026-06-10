@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../firebase'
@@ -59,6 +59,7 @@ export default function HeroSection() {
   const [current, setCurrent] = useState(0)
   const [animating, setAnimating] = useState(false)
   const navigate = useNavigate()
+  const touchStartX = useRef(null)
 
   useEffect(() => {
     async function load() {
@@ -113,6 +114,16 @@ export default function HeroSection() {
         className={`relative w-full overflow-hidden bg-black${isNews ? ' cursor-pointer' : ''}`}
         style={{ height: 'min(560px, 60vh)' }}
         onClick={() => isNews && navigate('/noticias')}
+        onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+        onTouchEnd={e => {
+          if (touchStartX.current === null) return
+          const dx = e.changedTouches[0].clientX - touchStartX.current
+          touchStartX.current = null
+          if (Math.abs(dx) < 40) return
+          dx < 0
+            ? goTo((current + 1) % slides.length)
+            : goTo((current - 1 + slides.length) % slides.length)
+        }}
       >
         <div
           className="absolute inset-0 transition-opacity duration-500"

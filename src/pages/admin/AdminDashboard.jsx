@@ -8,7 +8,8 @@ import AdminJogadores from './AdminJogadores'
 import AdminLoja from './AdminLoja'
 import AdminContato from './AdminContato'
 import AdminDiretoria from './AdminDiretoria'
-import { FaNewspaper, FaCalendarAlt, FaImages, FaSignOutAlt, FaUsers, FaShoppingBag, FaAddressCard, FaStar } from 'react-icons/fa'
+import AdminTreinos from './AdminTreinos'
+import { FaNewspaper, FaCalendarAlt, FaImages, FaSignOutAlt, FaUsers, FaShoppingBag, FaAddressCard, FaStar, FaFootballBall } from 'react-icons/fa'
 import { WolvesLogo } from '../../components/Navbar'
 
 const tabs = [
@@ -18,6 +19,7 @@ const tabs = [
   { id: 'loja', label: 'Loja', icon: FaShoppingBag, component: AdminLoja },
   { id: 'fotos', label: 'Fotos', icon: FaImages, component: AdminFotos },
   { id: 'diretoria', label: 'Diretoria', icon: FaStar, component: AdminDiretoria },
+  { id: 'treinos', label: 'Treinos', icon: FaFootballBall, component: AdminTreinos },
   { id: 'contato', label: 'Contato', icon: FaAddressCard, component: AdminContato },
 ]
 

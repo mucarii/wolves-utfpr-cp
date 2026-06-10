@@ -1,4 +1,5 @@
-﻿import { FaFootballBall, FaSchool, FaUsers, FaHandshake, FaMapMarkerAlt, FaUniversity, FaHeart } from 'react-icons/fa'
+﻿import usePageTitle from '../hooks/usePageTitle'
+import { FaFootballBall, FaSchool, FaUsers, FaHandshake, FaMapMarkerAlt, FaUniversity, FaHeart } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
 const projects = [
@@ -37,6 +38,7 @@ const projects = [
 ]
 
 export default function ExtensaoPage() {
+  usePageTitle('Extensão')
   return (
     <div className="page-enter pb-20">
 

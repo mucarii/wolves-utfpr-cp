@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, orderBy, query } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../../firebase'
-import { FaTrash, FaPlus, FaImage, FaTimes, FaEdit, FaCheck } from 'react-icons/fa'
+import { FaTrash, FaPlus, FaImage, FaTimes, FaEdit } from 'react-icons/fa'
 
 const categories = ['Uniforme', 'Treino', 'Acessório', 'Equipamento', 'Outro']
 const badges = ['', 'Lançamento', 'Mais Vendido', 'Novo', 'Promoção', 'Últimas unidades']
@@ -12,14 +12,14 @@ const MAX_IMG_SIZE = 5 * 1024 * 1024
 export default function AdminLoja() {
   const [produtos, setProdutos] = useState([])
   const [form, setForm] = useState(empty)
+  const [editingId, setEditingId] = useState(null)
+  const [editingStorageRef, setEditingStorageRef] = useState(null)
   const [imgFile, setImgFile] = useState(null)
   const [imgPreview, setImgPreview] = useState(null)
   const [progress, setProgress] = useState(0)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
-  const [editingPrice, setEditingPrice] = useState(null)
-  const [newPrice, setNewPrice] = useState('')
 
   const load = async () => {
     try {
@@ -36,14 +36,8 @@ export default function AdminLoja() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setError('Apenas imagens são permitidas.')
-      return
-    }
-    if (file.size > MAX_IMG_SIZE) {
-      setError('A imagem deve ter no máximo 5 MB.')
-      return
-    }
+    if (!file.type.startsWith('image/')) { setError('Apenas imagens são permitidas.'); return }
+    if (file.size > MAX_IMG_SIZE) { setError('A imagem deve ter no máximo 5 MB.'); return }
     setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
@@ -64,14 +58,48 @@ export default function AdminLoja() {
     )
   })
 
+  const startEdit = (p) => {
+    setEditingId(p.id)
+    setEditingStorageRef(p.storageRef || null)
+    setForm({ nome: p.nome, preco: p.preco, categoria: p.categoria, badge: p.badge || '', descricao: p.descricao || '' })
+    setImgPreview(p.url || null)
+    setImgFile(null)
+    setError(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditingStorageRef(null)
+    setForm(empty)
+    clearImg()
+    setError(null)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
       let imgData = {}
-      if (imgFile) imgData = await uploadImg(imgFile)
-      await addDoc(collection(db, 'produtos'), { ...form, ...imgData, criadoEm: new Date() })
+      if (imgFile) {
+        if (editingStorageRef) try { await deleteObject(ref(storage, editingStorageRef)) } catch {}
+        imgData = await uploadImg(imgFile)
+      } else if (editingId && !imgPreview) {
+        imgData = { url: null, storageRef: null }
+      }
+
+      if (editingId) {
+        await updateDoc(doc(db, 'produtos', editingId), {
+          ...form,
+          ...(Object.keys(imgData).length ? imgData : {}),
+        })
+        setEditingId(null)
+        setEditingStorageRef(null)
+      } else {
+        await addDoc(collection(db, 'produtos'), { ...form, criadoEm: new Date() })
+      }
+
       setForm(empty)
       clearImg()
       setProgress(0)
@@ -79,7 +107,7 @@ export default function AdminLoja() {
       setTimeout(() => setSuccess(false), 3000)
       await load()
     } catch {
-      setError('Erro ao adicionar produto. Tente novamente.')
+      setError(editingId ? 'Erro ao atualizar produto. Tente novamente.' : 'Erro ao adicionar produto. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -88,42 +116,38 @@ export default function AdminLoja() {
   const handleDelete = async (p) => {
     if (!confirm(`Remover "${p.nome}"?`)) return
     try {
-      if (p.storageRef) {
-        try { await deleteObject(ref(storage, p.storageRef)) } catch {}
-      }
+      if (p.storageRef) try { await deleteObject(ref(storage, p.storageRef)) } catch {}
       await deleteDoc(doc(db, 'produtos', p.id))
+      if (editingId === p.id) cancelEdit()
       await load()
     } catch {
       setError('Erro ao remover produto. Tente novamente.')
     }
   }
 
-  const handleSavePrice = async (id) => {
-    if (!newPrice) return
-    try {
-      await updateDoc(doc(db, 'produtos', id), { preco: newPrice })
-      setEditingPrice(null)
-      setNewPrice('')
-      await load()
-    } catch {
-      setError('Erro ao atualizar preço. Tente novamente.')
-    }
-  }
-
   return (
     <div className="space-y-8">
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
-        <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Novo Produto</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-black text-lg uppercase tracking-wide">
+            {editingId ? 'Editar Produto' : 'Novo Produto'}
+          </h2>
+          {editingId && (
+            <button onClick={cancelEdit} className="text-gray-500 hover:text-white text-xs flex items-center gap-1.5 transition-colors">
+              <FaTimes size={11} /> Cancelar edição
+            </button>
+          )}
+        </div>
+
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
-            {error}
-          </div>
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>
         )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
-            Produto adicionado com sucesso!
+            Produto {editingId ? 'atualizado' : 'adicionado'} com sucesso!
           </div>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -196,8 +220,8 @@ export default function AdminLoja() {
           )}
           <button type="submit" disabled={loading}
             className="btn-primary px-6 py-2.5 rounded-xl text-white font-bold text-sm uppercase tracking-wide flex items-center gap-2 disabled:opacity-50">
-            <FaPlus size={12} />
-            {loading ? 'Salvando...' : 'Adicionar Produto'}
+            {editingId ? <FaEdit size={12} /> : <FaPlus size={12} />}
+            {loading ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar Produto'}
           </button>
         </form>
       </div>
@@ -206,7 +230,7 @@ export default function AdminLoja() {
         <h3 className="text-gray-400 text-xs uppercase tracking-widest font-semibold">Produtos na loja ({produtos.length})</h3>
         {produtos.length === 0 && <p className="text-gray-600 text-sm">Nenhum produto cadastrado ainda.</p>}
         {produtos.map(p => (
-          <div key={p.id} className="bg-[#111] border border-white/10 rounded-xl overflow-hidden flex items-stretch">
+          <div key={p.id} className={`bg-[#111] border rounded-xl overflow-hidden flex items-stretch transition-colors ${editingId === p.id ? 'border-[#0c4dbe]/60' : 'border-white/10'}`}>
             {p.url
               ? <img src={p.url} alt={p.nome} className="w-20 object-cover shrink-0" />
               : <div className="w-20 bg-[#0c4dbe]/10 flex items-center justify-center shrink-0">
@@ -223,41 +247,17 @@ export default function AdminLoja() {
                 </div>
                 <p className="text-gray-500 text-xs">{p.categoria}</p>
               </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {editingPrice === p.id ? (
-                  <>
-                    <input
-                      value={newPrice}
-                      onChange={e => setNewPrice(e.target.value)}
-                      className="w-28 bg-black border border-[#0c4dbe] rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none"
-                      placeholder="R$ 0,00"
-                      autoFocus
-                    />
-                    <button onClick={() => handleSavePrice(p.id)}
-                      className="text-green-400 hover:text-green-300 transition-colors">
-                      <FaCheck size={13} />
-                    </button>
-                    <button onClick={() => setEditingPrice(null)}
-                      className="text-gray-500 hover:text-gray-300 transition-colors">
-                      <FaTimes size={13} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-[#0c4dbe] font-black text-sm">{p.preco}</span>
-                    <button onClick={() => { setEditingPrice(p.id); setNewPrice(p.preco) }}
-                      className="text-gray-500 hover:text-[#0c4dbe] transition-colors">
-                      <FaEdit size={13} />
-                    </button>
-                  </>
-                )}
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-[#0c4dbe] font-black text-sm">{p.preco}</span>
+                <button onClick={() => startEdit(p)} aria-label={`Editar ${p.nome}`}
+                  className="text-gray-500 hover:text-[#0c4dbe] transition-colors">
+                  <FaEdit size={13} />
+                </button>
+                <button onClick={() => handleDelete(p)} aria-label={`Remover ${p.nome}`}
+                  className="text-gray-600 hover:text-red-400 transition-colors">
+                  <FaTrash size={13} />
+                </button>
               </div>
-
-              <button onClick={() => handleDelete(p)}
-                className="text-gray-600 hover:text-red-400 transition-colors shrink-0">
-                <FaTrash size={13} />
-              </button>
             </div>
           </div>
         ))}

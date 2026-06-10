@@ -14,6 +14,7 @@ const leftNav = [
 
 const rightNav = [
   { label: 'Loja', path: '/loja' },
+  { label: 'Fotos', path: '/fotos' },
   { label: 'Extensão', path: '/extensao' },
   { label: 'Notícias', path: '/noticias' },
   { label: 'Contato', path: '/contato' },

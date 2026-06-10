@@ -10,9 +10,12 @@ import NoticiasPage from './pages/NoticiasPage'
 import ContatoPage from './pages/ContatoPage'
 import TreinosPage from './pages/TreinosPage'
 import ExtensaoPage from './pages/ExtensaoPage'
+import FotosPage from './pages/FotosPage'
+import NotFoundPage from './pages/NotFoundPage'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import ScrollToTop from './components/ScrollToTop'
 import { AuthProvider } from './contexts/AuthContext'
 
 function PublicLayout({ children }) {
@@ -28,6 +31,7 @@ function PublicLayout({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <ErrorBoundary>
       <AuthProvider>
         <Routes>
@@ -51,6 +55,8 @@ export default function App() {
                 <Route path="/contato" element={<ContatoPage />} />
                 <Route path="/treinos" element={<TreinosPage />} />
                 <Route path="/extensao" element={<ExtensaoPage />} />
+                <Route path="/fotos" element={<FotosPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </PublicLayout>
           } />

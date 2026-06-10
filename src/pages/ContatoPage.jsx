@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
+import usePageTitle from '../hooks/usePageTitle'
 import { db } from '../firebase'
 import { FaEnvelope, FaInstagram, FaWhatsapp, FaMapMarkerAlt, FaExternalLinkAlt, FaPaperPlane } from 'react-icons/fa'
 
@@ -14,8 +15,10 @@ const defaults = {
 const emptyForm = { nome: '', email: '', assunto: '', mensagem: '' }
 
 export default function ContatoPage() {
+  usePageTitle('Contato')
   const [info, setInfo] = useState(defaults)
   const [form, setForm] = useState(emptyForm)
+  const [sent, setSent] = useState(false)
 
   useEffect(() => {
     getDoc(doc(db, 'config', 'contato')).then(snap => {
@@ -77,6 +80,8 @@ export default function ContatoPage() {
 
     window.open(`https://wa.me/${info.whatsapp}?text=${encodeURIComponent(lines)}`, '_blank')
     setForm(emptyForm)
+    setSent(true)
+    setTimeout(() => setSent(false), 5000)
   }
 
   const inputClass = "w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#0c4dbe] transition-colors"
@@ -169,6 +174,12 @@ export default function ContatoPage() {
               className={`${inputClass} resize-none`}
             />
           </div>
+
+          {sent && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm rounded-xl px-4 py-3">
+              Mensagem enviada! O WhatsApp foi aberto com o seu texto.
+            </div>
+          )}
 
           <button
             type="submit"

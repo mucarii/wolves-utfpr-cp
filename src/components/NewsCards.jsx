@@ -58,7 +58,30 @@ export default function NewsCards() {
     load()
   }, [])
 
-  if (loading) return null
+  if (loading) return (
+    <section className="py-20 px-6 max-w-7xl mx-auto w-full">
+      <div className="mb-12">
+        <div className="h-3 w-16 bg-white/10 rounded-full mb-3 animate-pulse" />
+        <div className="h-8 w-32 bg-white/10 rounded-xl animate-pulse" />
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden animate-pulse">
+            <div className="h-1 bg-white/10" />
+            <div className="h-48 bg-white/5" />
+            <div className="p-6 space-y-3">
+              <div className="h-3 w-24 bg-white/10 rounded-full" />
+              <div className="h-4 w-full bg-white/10 rounded-full" />
+              <div className="h-4 w-3/4 bg-white/10 rounded-full" />
+              <div className="h-3 w-full bg-white/5 rounded-full" />
+              <div className="h-3 w-2/3 bg-white/5 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+
   if (news.length === 0) return null
 
   return (

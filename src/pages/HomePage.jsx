@@ -1,4 +1,5 @@
-﻿import HeroSection from '../components/HeroSection'
+﻿import usePageTitle from '../hooks/usePageTitle'
+import HeroSection from '../components/HeroSection'
 import NewsCards from '../components/NewsCards'
 import { FaTrophy, FaUsers, FaFootballBall, FaArrowRight, FaClock, FaMapMarkerAlt, FaInstagram } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
@@ -10,6 +11,7 @@ const highlights = [
 ]
 
 export default function HomePage() {
+  usePageTitle()
   return (
     <div className="page-enter">
       {/* Hero Slider */}

@@ -1,7 +1,9 @@
-﻿import { FaFootballBall, FaShieldAlt, FaUsers, FaCalendarAlt } from 'react-icons/fa'
+﻿import usePageTitle from '../hooks/usePageTitle'
+import { FaFootballBall, FaShieldAlt, FaUsers, FaCalendarAlt } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
 export default function ModalidadesPage() {
+  usePageTitle('Modalidades')
   return (
     <div className="page-enter pt-8 pb-20 px-6 max-w-7xl mx-auto w-full">
       <div className="mb-14">

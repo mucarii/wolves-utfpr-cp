@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore'
+import usePageTitle from '../hooks/usePageTitle'
 import { db } from '../firebase'
 import { FaShoppingCart, FaStar, FaTimes, FaPlus, FaMinus, FaTrash, FaCopy, FaCheck, FaWhatsapp } from 'react-icons/fa'
 import { parsePrice, formatPrice, cartTotal, cartCount } from '../utils/price'
@@ -271,6 +272,7 @@ function CheckoutModal({ cart, config, onClose }) {
 }
 
 export default function LojaPage() {
+  usePageTitle('Loja')
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState(() => {

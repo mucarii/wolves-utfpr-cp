@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, orderBy, query } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../../firebase'
-import { FaTrash, FaPlus, FaImage, FaTimes, FaStar } from 'react-icons/fa'
+import { FaTrash, FaPlus, FaImage, FaTimes, FaStar, FaEdit } from 'react-icons/fa'
 
 const empty = { titulo: '', resumo: '', conteudo: '', categoria: 'JOGO', destaque: false }
 const MAX_IMG_SIZE = 5 * 1024 * 1024
@@ -10,6 +10,8 @@ const MAX_IMG_SIZE = 5 * 1024 * 1024
 export default function AdminNoticias() {
   const [noticias, setNoticias] = useState([])
   const [form, setForm] = useState(empty)
+  const [editingId, setEditingId] = useState(null)
+  const [editingStorageRef, setEditingStorageRef] = useState(null)
   const [imgFile, setImgFile] = useState(null)
   const [imgPreview, setImgPreview] = useState(null)
   const [progress, setProgress] = useState(0)
@@ -32,23 +34,14 @@ export default function AdminNoticias() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setError('Apenas imagens são permitidas.')
-      return
-    }
-    if (file.size > MAX_IMG_SIZE) {
-      setError('A imagem deve ter no máximo 5 MB.')
-      return
-    }
+    if (!file.type.startsWith('image/')) { setError('Apenas imagens são permitidas.'); return }
+    if (file.size > MAX_IMG_SIZE) { setError('A imagem deve ter no máximo 5 MB.'); return }
     setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
   }
 
-  const clearImg = () => {
-    setImgFile(null)
-    setImgPreview(null)
-  }
+  const clearImg = () => { setImgFile(null); setImgPreview(null) }
 
   const uploadImg = (file) => new Promise((resolve, reject) => {
     const storageRef = ref(storage, `noticias/${Date.now()}_${file.name}`)
@@ -63,6 +56,24 @@ export default function AdminNoticias() {
     )
   })
 
+  const startEdit = (n) => {
+    setEditingId(n.id)
+    setEditingStorageRef(n.storageRef || null)
+    setForm({ titulo: n.titulo, resumo: n.resumo, conteudo: n.conteudo, categoria: n.categoria, destaque: n.destaque || false })
+    setImgPreview(n.url || null)
+    setImgFile(null)
+    setError(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditingStorageRef(null)
+    setForm(empty)
+    clearImg()
+    setError(null)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -70,9 +81,23 @@ export default function AdminNoticias() {
     try {
       let imgData = {}
       if (imgFile) {
+        if (editingStorageRef) try { await deleteObject(ref(storage, editingStorageRef)) } catch {}
         imgData = await uploadImg(imgFile)
+      } else if (editingId && !imgPreview) {
+        imgData = { url: null, storageRef: null }
       }
-      await addDoc(collection(db, 'noticias'), { ...form, ...imgData, criadoEm: new Date() })
+
+      if (editingId) {
+        await updateDoc(doc(db, 'noticias', editingId), {
+          ...form,
+          ...(Object.keys(imgData).length ? imgData : {}),
+        })
+        setEditingId(null)
+        setEditingStorageRef(null)
+      } else {
+        await addDoc(collection(db, 'noticias'), { ...form, criadoEm: new Date() })
+      }
+
       setForm(empty)
       clearImg()
       setProgress(0)
@@ -80,7 +105,7 @@ export default function AdminNoticias() {
       setTimeout(() => setSuccess(false), 3000)
       await load()
     } catch {
-      setError('Erro ao publicar notícia. Tente novamente.')
+      setError(editingId ? 'Erro ao atualizar notícia. Tente novamente.' : 'Erro ao publicar notícia. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -98,10 +123,9 @@ export default function AdminNoticias() {
   const handleDelete = async (n) => {
     if (!confirm('Remover esta notícia?')) return
     try {
-      if (n.storageRef) {
-        try { await deleteObject(ref(storage, n.storageRef)) } catch {}
-      }
+      if (n.storageRef) try { await deleteObject(ref(storage, n.storageRef)) } catch {}
       await deleteDoc(doc(db, 'noticias', n.id))
+      if (editingId === n.id) cancelEdit()
       await load()
     } catch {
       setError('Erro ao remover notícia. Tente novamente.')
@@ -111,17 +135,26 @@ export default function AdminNoticias() {
   return (
     <div className="space-y-8">
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
-        <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Nova Notícia</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-black text-lg uppercase tracking-wide">
+            {editingId ? 'Editar Notícia' : 'Nova Notícia'}
+          </h2>
+          {editingId && (
+            <button onClick={cancelEdit} className="text-gray-500 hover:text-white text-xs flex items-center gap-1.5 transition-colors">
+              <FaTimes size={11} /> Cancelar edição
+            </button>
+          )}
+        </div>
+
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
-            {error}
-          </div>
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>
         )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
-            Notícia publicada com sucesso!
+            Notícia {editingId ? 'atualizada' : 'publicada'} com sucesso!
           </div>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -186,6 +219,12 @@ export default function AdminNoticias() {
             )}
           </div>
 
+          {loading && imgFile && (
+            <div className="w-full bg-black rounded-full h-1.5">
+              <div className="bg-[#0c4dbe] h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          )}
+
           <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
             <input
               type="checkbox"
@@ -199,16 +238,10 @@ export default function AdminNoticias() {
             </span>
           </label>
 
-          {loading && imgFile && (
-            <div className="w-full bg-black rounded-full h-1.5">
-              <div className="bg-[#0c4dbe] h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
-            </div>
-          )}
-
           <button type="submit" disabled={loading}
             className="btn-primary px-6 py-2.5 rounded-xl text-white font-bold text-sm uppercase tracking-wide flex items-center gap-2 disabled:opacity-50">
-            <FaPlus size={12} />
-            {loading ? 'Publicando...' : 'Publicar Notícia'}
+            {editingId ? <FaEdit size={12} /> : <FaPlus size={12} />}
+            {loading ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Publicar Notícia'}
           </button>
         </form>
       </div>
@@ -217,10 +250,8 @@ export default function AdminNoticias() {
         <h3 className="text-gray-400 text-xs uppercase tracking-widest font-semibold">Notícias publicadas ({noticias.length})</h3>
         {noticias.length === 0 && <p className="text-gray-600 text-sm">Nenhuma notícia publicada ainda.</p>}
         {noticias.map(n => (
-          <div key={n.id} className="bg-[#111] border border-white/10 rounded-xl overflow-hidden flex items-stretch gap-0">
-            {n.url && (
-              <img src={n.url} alt={n.titulo} className="w-20 object-cover shrink-0" />
-            )}
+          <div key={n.id} className={`bg-[#111] border rounded-xl overflow-hidden flex items-stretch gap-0 transition-colors ${editingId === n.id ? 'border-[#0c4dbe]/60' : 'border-white/10'}`}>
+            {n.url && <img src={n.url} alt={n.titulo} className="w-20 object-cover shrink-0" />}
             <div className="flex-1 px-5 py-4 flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -242,6 +273,10 @@ export default function AdminNoticias() {
                   className={`transition-colors ${n.destaque ? 'text-yellow-400 hover:text-yellow-200' : 'text-gray-600 hover:text-yellow-400'}`}
                 >
                   <FaStar size={13} />
+                </button>
+                <button onClick={() => startEdit(n)} aria-label={`Editar notícia ${n.titulo}`}
+                  className="text-gray-600 hover:text-[#0c4dbe] transition-colors">
+                  <FaEdit size={13} />
                 </button>
                 <button onClick={() => handleDelete(n)} aria-label={`Remover notícia ${n.titulo}`}
                   className="text-gray-600 hover:text-red-400 transition-colors">

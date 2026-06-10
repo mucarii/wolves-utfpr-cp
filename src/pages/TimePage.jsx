@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import usePageTitle from '../hooks/usePageTitle'
 import { db } from '../firebase'
 import { FaUserTie } from 'react-icons/fa'
 import { POSITIONS, POS_COLORS } from '../constants'
@@ -32,6 +33,7 @@ function PlayerCard({ player }) {
 }
 
 export default function TimePage() {
+  usePageTitle('Time')
   const [players, setPlayers] = useState([])
   const [formacoes, setFormacoes] = useState([])
   const [diretoria, setDiretoria] = useState([])

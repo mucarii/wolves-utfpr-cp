@@ -80,7 +80,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-gray-600 text-xs">
-            © 2026 Wolves UTFPR-CP. Todos os direitos reservados.
+            © {new Date().getFullYear()} Wolves UTFPR-CP. Todos os direitos reservados.
           </p>
           <div className="flex gap-6">
             {['Privacidade', 'Termos de Uso'].map(item => (

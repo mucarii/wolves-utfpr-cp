@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { collection, addDoc, getDocs, deleteDoc, doc, orderBy, query } from 'firebase/firestore'
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, orderBy, query } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../../firebase'
-import { FaTrash, FaPlus, FaImage, FaTimes } from 'react-icons/fa'
+import { FaTrash, FaPlus, FaImage, FaTimes, FaEdit } from 'react-icons/fa'
 
 const empty = { titulo: '', descricao: '', data: '', horario: '', local: '', tipo: 'JOGO' }
 const MAX_IMG_SIZE = 5 * 1024 * 1024
@@ -10,6 +10,8 @@ const MAX_IMG_SIZE = 5 * 1024 * 1024
 export default function AdminEventos() {
   const [eventos, setEventos] = useState([])
   const [form, setForm] = useState(empty)
+  const [editingId, setEditingId] = useState(null)
+  const [editingStorageRef, setEditingStorageRef] = useState(null)
   const [imgFile, setImgFile] = useState(null)
   const [imgPreview, setImgPreview] = useState(null)
   const [progress, setProgress] = useState(0)
@@ -32,23 +34,14 @@ export default function AdminEventos() {
   const handleImgChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setError('Apenas imagens são permitidas.')
-      return
-    }
-    if (file.size > MAX_IMG_SIZE) {
-      setError('A imagem deve ter no máximo 5 MB.')
-      return
-    }
+    if (!file.type.startsWith('image/')) { setError('Apenas imagens são permitidas.'); return }
+    if (file.size > MAX_IMG_SIZE) { setError('A imagem deve ter no máximo 5 MB.'); return }
     setError(null)
     setImgFile(file)
     setImgPreview(URL.createObjectURL(file))
   }
 
-  const clearImg = () => {
-    setImgFile(null)
-    setImgPreview(null)
-  }
+  const clearImg = () => { setImgFile(null); setImgPreview(null) }
 
   const uploadImg = (file) => new Promise((resolve, reject) => {
     const storageRef = ref(storage, `eventos/${Date.now()}_${file.name}`)
@@ -63,6 +56,24 @@ export default function AdminEventos() {
     )
   })
 
+  const startEdit = (ev) => {
+    setEditingId(ev.id)
+    setEditingStorageRef(ev.storageRef || null)
+    setForm({ titulo: ev.titulo, descricao: ev.descricao || '', data: ev.data, horario: ev.horario || '', local: ev.local || '', tipo: ev.tipo })
+    setImgPreview(ev.url || null)
+    setImgFile(null)
+    setError(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditingStorageRef(null)
+    setForm(empty)
+    clearImg()
+    setError(null)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -70,9 +81,23 @@ export default function AdminEventos() {
     try {
       let imgData = {}
       if (imgFile) {
+        if (editingStorageRef) try { await deleteObject(ref(storage, editingStorageRef)) } catch {}
         imgData = await uploadImg(imgFile)
+      } else if (editingId && !imgPreview) {
+        imgData = { url: null, storageRef: null }
       }
-      await addDoc(collection(db, 'eventos'), { ...form, ...imgData, criadoEm: new Date() })
+
+      if (editingId) {
+        await updateDoc(doc(db, 'eventos', editingId), {
+          ...form,
+          ...(Object.keys(imgData).length ? imgData : {}),
+        })
+        setEditingId(null)
+        setEditingStorageRef(null)
+      } else {
+        await addDoc(collection(db, 'eventos'), { ...form, ...imgData, criadoEm: new Date() })
+      }
+
       setForm(empty)
       clearImg()
       setProgress(0)
@@ -80,7 +105,7 @@ export default function AdminEventos() {
       setTimeout(() => setSuccess(false), 3000)
       await load()
     } catch {
-      setError('Erro ao criar evento. Tente novamente.')
+      setError(editingId ? 'Erro ao atualizar evento. Tente novamente.' : 'Erro ao criar evento. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -89,10 +114,9 @@ export default function AdminEventos() {
   const handleDelete = async (ev) => {
     if (!confirm('Remover este evento?')) return
     try {
-      if (ev.storageRef) {
-        try { await deleteObject(ref(storage, ev.storageRef)) } catch {}
-      }
+      if (ev.storageRef) try { await deleteObject(ref(storage, ev.storageRef)) } catch {}
       await deleteDoc(doc(db, 'eventos', ev.id))
+      if (editingId === ev.id) cancelEdit()
       await load()
     } catch {
       setError('Erro ao remover evento. Tente novamente.')
@@ -102,17 +126,26 @@ export default function AdminEventos() {
   return (
     <div className="space-y-8">
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
-        <h2 className="text-white font-black text-lg mb-5 uppercase tracking-wide">Novo Evento</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-black text-lg uppercase tracking-wide">
+            {editingId ? 'Editar Evento' : 'Novo Evento'}
+          </h2>
+          {editingId && (
+            <button onClick={cancelEdit} className="text-gray-500 hover:text-white text-xs flex items-center gap-1.5 transition-colors">
+              <FaTimes size={11} /> Cancelar edição
+            </button>
+          )}
+        </div>
+
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
-            {error}
-          </div>
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>
         )}
         {success && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-4">
-            Evento criado com sucesso!
+            Evento {editingId ? 'atualizado' : 'criado'} com sucesso!
           </div>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -197,8 +230,8 @@ export default function AdminEventos() {
 
           <button type="submit" disabled={loading}
             className="btn-primary px-6 py-2.5 rounded-xl text-white font-bold text-sm uppercase tracking-wide flex items-center gap-2 disabled:opacity-50">
-            <FaPlus size={12} />
-            {loading ? 'Salvando...' : 'Criar Evento'}
+            {editingId ? <FaEdit size={12} /> : <FaPlus size={12} />}
+            {loading ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Criar Evento'}
           </button>
         </form>
       </div>
@@ -207,10 +240,8 @@ export default function AdminEventos() {
         <h3 className="text-gray-400 text-xs uppercase tracking-widest font-semibold">Eventos ({eventos.length})</h3>
         {eventos.length === 0 && <p className="text-gray-600 text-sm">Nenhum evento cadastrado ainda.</p>}
         {eventos.map(ev => (
-          <div key={ev.id} className="bg-[#111] border border-white/10 rounded-xl overflow-hidden flex items-stretch">
-            {ev.url && (
-              <img src={ev.url} alt={ev.titulo} className="w-20 object-cover shrink-0" />
-            )}
+          <div key={ev.id} className={`bg-[#111] border rounded-xl overflow-hidden flex items-stretch transition-colors ${editingId === ev.id ? 'border-[#0c4dbe]/60' : 'border-white/10'}`}>
+            {ev.url && <img src={ev.url} alt={ev.titulo} className="w-20 object-cover shrink-0" />}
             <div className="flex-1 px-5 py-4 flex items-start justify-between gap-4">
               <div>
                 <span className="text-[#ffc501] text-[10px] font-bold uppercase tracking-widest">{ev.tipo}</span>
@@ -219,10 +250,16 @@ export default function AdminEventos() {
                   {ev.data}{ev.horario ? ` · ${ev.horario}` : ''}{ev.local ? ` · ${ev.local}` : ''}
                 </p>
               </div>
-              <button onClick={() => handleDelete(ev)}
-                className="text-gray-600 hover:text-red-400 transition-colors shrink-0 mt-1">
-                <FaTrash size={13} />
-              </button>
+              <div className="flex items-center gap-2 shrink-0 mt-1">
+                <button onClick={() => startEdit(ev)} aria-label={`Editar ${ev.titulo}`}
+                  className="text-gray-600 hover:text-[#0c4dbe] transition-colors">
+                  <FaEdit size={13} />
+                </button>
+                <button onClick={() => handleDelete(ev)} aria-label={`Remover ${ev.titulo}`}
+                  className="text-gray-600 hover:text-red-400 transition-colors">
+                  <FaTrash size={13} />
+                </button>
+              </div>
             </div>
           </div>
         ))}
