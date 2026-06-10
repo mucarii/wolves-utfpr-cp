@@ -145,7 +145,7 @@ function AdminJogadoresTab() {
             </div>
             <div>
               <label className="text-gray-400 text-xs uppercase tracking-widest font-semibold block mb-2">Número</label>
-              <input type="number" min="1" max="99"
+              <input type="number" min="0" max="99"
                 value={form.numero} onChange={e => setForm(f => ({ ...f, numero: e.target.value }))}
                 required className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#0c4dbe]"
                 placeholder="12" />
