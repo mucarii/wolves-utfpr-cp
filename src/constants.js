@@ -1,9 +1,10 @@
 export const POSITIONS = [
   'Quarterback',
-  'Linemen',
-  'Wide Receiver / TE',
+  'Offensive Lineman',
+  'Defensive Lineman',
+  'Wide Receiver',
+  'Tight End',
   'Running Back',
-  'Defesa',
   'Safety',
   'Cornerback',
   'Linebacker',
@@ -12,10 +13,11 @@ export const POSITIONS = [
 
 export const POS_COLORS = {
   'Quarterback':        'bg-red-500/20 text-red-400 border-red-500/30',
-  'Linemen':            'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  'Wide Receiver / TE': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  'Offensive Lineman':  'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  'Defensive Lineman':  'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  'Wide Receiver': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  'Tight End':          'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
   'Running Back':       'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  'Defesa':             'bg-orange-500/20 text-orange-400 border-orange-500/30',
   'Safety':             'bg-purple-500/20 text-purple-400 border-purple-500/30',
   'Cornerback':         'bg-pink-500/20 text-pink-400 border-pink-500/30',
   'Linebacker':         'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
