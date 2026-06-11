@@ -151,20 +151,25 @@ export default function TimePage() {
         </div>
       )}
 
-      {!loading && players.length > 0 && POSITIONS.map(pos => {
-        const group = players.filter(p => p.posicao === pos)
-        if (!group.length) return null
-        return (
-          <div key={pos} className="mb-12">
-            <h2 className="text-xl font-bold text-gray-300 uppercase tracking-widest mb-6 border-b border-white/10 pb-3">
-              {pos}
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {group.map(player => <PlayerCard key={player.id} player={player} />)}
+      {!loading && players.length > 0 && (() => {
+        const knownPos = POSITIONS.filter(p => players.some(pl => pl.posicao === p))
+        const otherPos = [...new Set(players.map(pl => pl.posicao).filter(p => p && !POSITIONS.includes(p)))]
+        const allPos = [...knownPos, ...otherPos]
+        return allPos.map(pos => {
+          const group = players.filter(p => p.posicao === pos)
+          if (!group.length) return null
+          return (
+            <div key={pos} className="mb-12">
+              <h2 className="text-xl font-bold text-gray-300 uppercase tracking-widest mb-6 border-b border-white/10 pb-3">
+                {pos}
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {group.map(player => <PlayerCard key={player.id} player={player} />)}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })
+      })()}
     </div>
   )
 }

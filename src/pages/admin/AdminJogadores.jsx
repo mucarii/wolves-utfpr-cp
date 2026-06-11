@@ -205,9 +205,10 @@ function AdminJogadoresTab() {
       </div>
 
       {/* Lista */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         <h3 className="text-gray-400 text-xs uppercase tracking-widest font-semibold">Elenco ({jogadores.length} jogadores)</h3>
         {jogadores.length === 0 && <p className="text-gray-600 text-sm">Nenhum jogador cadastrado ainda.</p>}
+        <div className="max-h-[520px] overflow-y-auto pr-1 space-y-6">
         {Object.entries(byPos).map(([pos, group]) => (
           <div key={pos}>
             <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-3 border-b border-white/10 pb-2">{pos}</h4>
@@ -239,6 +240,7 @@ function AdminJogadoresTab() {
             </div>
           </div>
         ))}
+        </div>
       </div>
     </div>
   )
