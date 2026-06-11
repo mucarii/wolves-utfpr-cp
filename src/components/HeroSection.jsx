@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore'
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../firebase'
 
@@ -64,23 +64,16 @@ export default function HeroSection() {
   useEffect(() => {
     async function load() {
       try {
-        // Prefer admin-pinned (destaque) noticias; no combined orderBy to avoid composite index
-        let snap = await getDocs(
-          query(collection(db, 'noticias'), where('destaque', '==', true), limit(5))
+        const snap = await getDocs(
+          query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'), limit(20))
         )
-        if (snap.empty) {
-          snap = await getDocs(
-            query(collection(db, 'noticias'), orderBy('criadoEm', 'desc'), limit(5))
-          )
-        }
-        if (!snap.empty) {
-          const items = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => (b.criadoEm?.seconds ?? 0) - (a.criadoEm?.seconds ?? 0))
-          setSlides(items)
-          setIsNews(true)
-          setCurrent(0)
-        }
+        if (snap.empty) return
+        const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        const destaques = all.filter(n => n.destaque === true)
+        const items = destaques.length > 0 ? destaques : all.slice(0, 5)
+        setSlides(items)
+        setIsNews(true)
+        setCurrent(0)
       } catch {
         // keep static fallback on any Firestore error
       }
