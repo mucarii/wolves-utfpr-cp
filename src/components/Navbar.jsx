@@ -10,6 +10,7 @@ const leftNav = [
   { label: 'Time', path: '/time' },
   { label: 'Modalidades', path: '/modalidades' },
   { label: 'Treinos', path: '/treinos' },
+  { label: 'Eventos', path: '/eventos' },
 ]
 
 const rightNav = [
@@ -265,7 +266,7 @@ export default function Navbar() {
                   {noticiaResults.map(n => (
                     <button
                       key={n.id}
-                      onClick={() => handleSearchResult('/noticias')}
+                      onClick={() => handleSearchResult(`/noticias/${n.id}`)}
                       className="w-full flex items-start gap-3 px-5 py-2.5 hover:bg-white/5 transition-colors text-left"
                     >
                       {n.url && (

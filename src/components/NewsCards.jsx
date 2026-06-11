@@ -36,7 +36,7 @@ function NewsCard({ item }) {
         <p className="text-gray-400 text-sm leading-relaxed line-clamp-3 mb-5 flex-1">
           {item.resumo}
         </p>
-        <NavLink to="/noticias" className="inline-flex items-center gap-2 text-[#0c4dbe] text-sm font-semibold hover:gap-3 transition-all">
+        <NavLink to={`/noticias/${item.id}`} className="inline-flex items-center gap-2 text-[#0c4dbe] text-sm font-semibold hover:gap-3 transition-all">
           Ler mais <FaArrowRight size={12} />
         </NavLink>
       </div>

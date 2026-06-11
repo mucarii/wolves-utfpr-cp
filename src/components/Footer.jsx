@@ -13,6 +13,7 @@ const footerLinks = {
     { label: 'O Time', path: '/time' },
     { label: 'Modalidades', path: '/modalidades' },
     { label: 'Treinos', path: '/treinos' },
+    { label: 'Eventos', path: '/eventos' },
   ],
   Torcedor: [
     { label: 'Loja Oficial', path: '/loja' },

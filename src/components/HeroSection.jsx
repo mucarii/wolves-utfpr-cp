@@ -106,7 +106,7 @@ export default function HeroSection() {
       <div
         className={`relative w-full overflow-hidden bg-black${isNews ? ' cursor-pointer' : ''}`}
         style={{ height: 'min(560px, 60vh)' }}
-        onClick={() => isNews && navigate('/noticias')}
+        onClick={() => isNews && navigate(`/noticias/${slide.id}`)}
         onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
         onTouchEnd={e => {
           if (touchStartX.current === null) return

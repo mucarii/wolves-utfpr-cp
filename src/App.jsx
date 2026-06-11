@@ -11,6 +11,8 @@ import ContatoPage from './pages/ContatoPage'
 import TreinosPage from './pages/TreinosPage'
 import ExtensaoPage from './pages/ExtensaoPage'
 import FotosPage from './pages/FotosPage'
+import EventosPage from './pages/EventosPage'
+import NoticiaDetalhe from './pages/NoticiaDetalhe'
 import NotFoundPage from './pages/NotFoundPage'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -52,6 +54,8 @@ export default function App() {
                 <Route path="/modalidades" element={<ModalidadesPage />} />
                 <Route path="/loja" element={<LojaPage />} />
                 <Route path="/noticias" element={<NoticiasPage />} />
+                <Route path="/noticias/:id" element={<NoticiaDetalhe />} />
+                <Route path="/eventos" element={<EventosPage />} />
                 <Route path="/contato" element={<ContatoPage />} />
                 <Route path="/treinos" element={<TreinosPage />} />
                 <Route path="/extensao" element={<ExtensaoPage />} />
