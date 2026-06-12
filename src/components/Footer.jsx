@@ -1,4 +1,7 @@
-﻿import { FaMapMarkerAlt, FaClock } from 'react-icons/fa'
+﻿import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+import { FaMapMarkerAlt, FaClock } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 import { WolvesLogo } from './Navbar'
 import SocialLinks from './SocialLinks'
@@ -22,7 +25,26 @@ const footerLinks = {
   ],
 }
 
+const DEFAULT_SCHEDULE = [
+  { day: 'Terça-feira', time: '17h30' },
+  { day: 'Quinta-feira', time: '17h30' },
+  { day: 'Sábado', time: '09h00' },
+]
+
+function abbreviate(day) {
+  const map = { 'Terça-feira': 'Ter', 'Quinta-feira': 'Qui', 'Sábado': 'Sáb', 'Segunda-feira': 'Seg', 'Quarta-feira': 'Qua', 'Sexta-feira': 'Sex', 'Domingo': 'Dom' }
+  return map[day] || day.substring(0, 3)
+}
+
 export default function Footer() {
+  const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
+
+  useEffect(() => {
+    getDoc(doc(db, 'config', 'treinos')).then(snap => {
+      if (snap.exists() && snap.data().schedule?.length) setSchedule(snap.data().schedule)
+    }).catch(() => {})
+  }, [])
+
   return (
     <footer className="bg-black border-t border-white/10 mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -74,7 +96,7 @@ export default function Footer() {
           </div>
           <div className="flex items-start gap-3 text-gray-400 text-sm">
             <FaClock size={14} className="text-[#0c4dbe] mt-0.5 shrink-0" />
-            <span>Ter &amp; Qui 17h30 &nbsp;|&nbsp; Sáb 09h</span>
+            <span>{schedule.map(s => `${abbreviate(s.day)} ${s.time}`).join(' · ')}</span>
           </div>
         </div>
 

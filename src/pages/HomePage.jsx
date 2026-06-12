@@ -1,17 +1,48 @@
-﻿import usePageTitle from '../hooks/usePageTitle'
+import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+import usePageTitle from '../hooks/usePageTitle'
 import HeroSection from '../components/HeroSection'
 import NewsCards from '../components/NewsCards'
 import { FaTrophy, FaUsers, FaFootballBall, FaArrowRight, FaClock, FaMapMarkerAlt, FaInstagram } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
-const highlights = [
-  { icon: FaTrophy, title: 'Campeões', desc: 'Títulos em campeonatos de tackle e flag no cenário paranaense e nacional.' },
+const DEFAULT_STATS = [
+  { label: 'Atletas',       value: '45+', dark: true },
+  { label: 'Posts no Insta', value: '50',  dark: false },
+  { label: 'Seguidores',    value: '825', dark: false },
+  { label: 'Modalidades',   value: '2',   dark: true },
+]
+
+const DEFAULT_SCHEDULE = [
+  { day: 'Terça-feira',   time: '17h30' },
+  { day: 'Quinta-feira',  time: '17h30' },
+  { day: 'Sábado',        time: '09h00' },
+]
+
+const DEFAULT_HIGHLIGHTS = [
+  { icon: FaTrophy,       title: 'Campeões',          desc: 'Títulos em campeonatos de tackle e flag no cenário paranaense e nacional.' },
   { icon: FaFootballBall, title: 'Futebol Americano', desc: 'Full pad e Flag Football com atletas da UTFPR-CP.' },
-  { icon: FaUsers, title: '825 Seguidores', desc: 'Comunidade crescendo. Siga @wolvesutfcp e acompanhe cada jogo.' },
+  { icon: FaUsers,        title: '825 Seguidores',    desc: 'Comunidade crescendo. Siga @wolvesutfcp e acompanhe cada jogo.' },
 ]
 
 export default function HomePage() {
   usePageTitle()
+  const [stats, setStats] = useState(DEFAULT_STATS)
+  const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
+
+  useEffect(() => {
+    getDoc(doc(db, 'config', 'home')).then(snap => {
+      if (snap.exists()) {
+        if (snap.data().stats?.length) setStats(snap.data().stats)
+      }
+    }).catch(() => {})
+
+    getDoc(doc(db, 'config', 'treinos')).then(snap => {
+      if (snap.exists() && snap.data().schedule?.length) setSchedule(snap.data().schedule)
+    }).catch(() => {})
+  }, [])
+
   return (
     <div className="page-enter">
       {/* Hero Slider */}
@@ -20,7 +51,7 @@ export default function HomePage() {
       {/* Quick info strip */}
       <section className="bg-[#0c4dbe] py-10 px-6">
         <div className="max-w-7xl mx-auto grid sm:grid-cols-3 gap-8">
-          {highlights.map(({ icon: Icon, title, desc }) => (
+          {DEFAULT_HIGHLIGHTS.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-4 text-white">
               <div className="w-11 h-11 rounded-xl bg-[#ffc501] flex items-center justify-center shrink-0">
                 <Icon size={20} className="text-black" />
@@ -34,7 +65,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Treinos card — destaque visual */}
+      {/* Treinos card */}
       <section className="py-16 px-6 max-w-7xl mx-auto w-full">
         <div className="grid md:grid-cols-2 gap-6">
           {/* Treinos */}
@@ -43,11 +74,7 @@ export default function HomePage() {
               <span className="text-[#0c4dbe] text-xs font-bold uppercase tracking-widest">Abertas para todos</span>
               <h2 className="text-2xl font-black text-white mt-2 mb-4">Vem treinar com a gente!</h2>
               <div className="space-y-3 mb-6">
-                {[
-                  { day: 'Terça-feira', time: '17h30' },
-                  { day: 'Quinta-feira', time: '17h30' },
-                  { day: 'Sábado', time: '09h00' },
-                ].map(({ day, time }) => (
+                {schedule.map(({ day, time }) => (
                   <div key={day} className="flex items-center justify-between bg-black/40 rounded-xl px-4 py-3">
                     <span className="text-white font-semibold text-sm">{day}</span>
                     <div className="flex items-center gap-2 text-[#0c4dbe] font-black text-sm">
@@ -82,10 +109,6 @@ export default function HomePage() {
               </p>
               <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 inline-block mb-6">
                 <span className="text-white font-black text-lg">@wolvesutfcp</span>
-              </div>
-              <div className="flex items-center gap-6 text-white/70 text-sm">
-                <div><span className="font-black text-white text-xl block">50</span>posts</div>
-                <div><span className="font-black text-white text-xl block">825</span>seguidores</div>
               </div>
             </div>
             <a
@@ -128,13 +151,8 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: 'Atletas', value: '45+', bg: 'bg-[#ffc501]', dark: true },
-              { label: 'Posts no Insta', value: '50', bg: 'bg-[#111]', dark: false },
-              { label: 'Seguidores', value: '825', bg: 'bg-[#111]', dark: false },
-              { label: 'Modalidades', value: '2', bg: 'bg-[#ffc501]', dark: true },
-            ].map(({ label, value, bg, dark }) => (
-              <div key={label} className={`${bg} border border-white/10 rounded-2xl p-8 text-center card-hover`}>
+            {stats.map(({ label, value, dark }) => (
+              <div key={label} className={`${dark ? 'bg-[#ffc501]' : 'bg-[#111]'} border border-white/10 rounded-2xl p-8 text-center card-hover`}>
                 <div className={`text-5xl font-black mb-2 ${dark ? 'text-black' : 'text-white'}`}>{value}</div>
                 <div className={`text-sm uppercase tracking-wider font-medium ${dark ? 'text-black/60' : 'text-gray-400'}`}>{label}</div>
               </div>

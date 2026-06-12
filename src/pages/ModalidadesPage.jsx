@@ -1,9 +1,25 @@
-﻿import usePageTitle from '../hooks/usePageTitle'
+import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+import usePageTitle from '../hooks/usePageTitle'
 import { FaFootballBall, FaShieldAlt, FaUsers, FaCalendarAlt } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
+const DEFAULTS = {
+  fullPad: 'A modalidade completa com equipamento — capacete, ombreira, joelheira e caneleira. Os atletas disputam partidas de tackle em competições regionais e nacionais, enfrentando equipes de outras universidades e clubes do Paraná e do Brasil.',
+  flag: 'Versão do futebol americano sem contato físico direto — o marcador arranca a flag da cintura do portador da bola no lugar do tackle. É uma modalidade mais acessível, aberta a mais idades e muito popular em torneios regionais e campeonatos estaduais do Paraná.',
+}
+
 export default function ModalidadesPage() {
   usePageTitle('Modalidades')
+  const [desc, setDesc] = useState(DEFAULTS)
+
+  useEffect(() => {
+    getDoc(doc(db, 'config', 'modalidades')).then(snap => {
+      if (snap.exists()) setDesc({ ...DEFAULTS, ...snap.data() })
+    }).catch(() => {})
+  }, [])
+
   return (
     <div className="page-enter pt-8 pb-20 px-6 max-w-7xl mx-auto w-full">
       <div className="mb-14">
@@ -31,11 +47,7 @@ export default function ModalidadesPage() {
               Futebol Americano
             </h2>
             <p className="text-[#0c4dbe] font-bold text-sm uppercase tracking-widest mb-4">Full Pad</p>
-            <p className="text-gray-400 leading-relaxed mb-6">
-              A modalidade completa com equipamento — capacete, ombreira, joelheira e caneleira. Os atletas disputam
-              partidas de tackle em competições regionais e nacionais, enfrentando equipes de outras universidades e
-              clubes do Paraná e do Brasil.
-            </p>
+            <p className="text-gray-400 leading-relaxed mb-6">{desc.fullPad}</p>
             <div className="grid grid-cols-2 gap-4 mb-6">
               {[
                 { label: 'Contato físico', value: 'Tackle' },
@@ -75,11 +87,7 @@ export default function ModalidadesPage() {
               Flag Football
             </h2>
             <p className="text-orange-400 font-bold text-sm uppercase tracking-widest mb-4">Sem contato</p>
-            <p className="text-gray-400 leading-relaxed mb-6">
-              Versão do futebol americano sem contato físico direto — o marcador arranca a flag da cintura do
-              portador da bola no lugar do tackle. É uma modalidade mais acessível, aberta a mais idades e muito
-              popular em torneios regionais e campeonatos estaduais do Paraná.
-            </p>
+            <p className="text-gray-400 leading-relaxed mb-6">{desc.flag}</p>
             <div className="grid grid-cols-2 gap-4 mb-6">
               {[
                 { label: 'Contato físico', value: 'Sem tackle' },
@@ -115,16 +123,10 @@ export default function ModalidadesPage() {
             Os treinos são abertos — full pad ou flag, não importa. Apareça na UTFPR CP e venha jogar!
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <NavLink
-              to="/treinos"
-              className="bg-white text-[#0c4dbe] font-black px-8 py-3.5 rounded-full hover:bg-blue-50 transition-colors uppercase tracking-wide text-sm"
-            >
+            <NavLink to="/treinos" className="bg-white text-[#0c4dbe] font-black px-8 py-3.5 rounded-full hover:bg-blue-50 transition-colors uppercase tracking-wide text-sm">
               Ver Horários
             </NavLink>
-            <NavLink
-              to="/contato"
-              className="border-2 border-white text-white font-bold px-8 py-3.5 rounded-full hover:bg-white/10 transition-colors uppercase tracking-wide text-sm"
-            >
+            <NavLink to="/contato" className="border-2 border-white text-white font-bold px-8 py-3.5 rounded-full hover:bg-white/10 transition-colors uppercase tracking-wide text-sm">
               Fale Conosco
             </NavLink>
           </div>

@@ -1,44 +1,44 @@
-﻿import usePageTitle from '../hooks/usePageTitle'
-import { FaFootballBall, FaSchool, FaUsers, FaHandshake, FaMapMarkerAlt, FaUniversity, FaHeart } from 'react-icons/fa'
+﻿import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+import usePageTitle from '../hooks/usePageTitle'
+import { FaFootballBall, FaSchool, FaUsers, FaHandshake, FaMapMarkerAlt, FaUniversity, FaHeart, FaStar } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 
-const projects = [
-  {
-    icon: FaFootballBall,
-    name: 'Futebol Americano para Todos',
-    tag: 'Esporte & Comunidade',
-    tagColor: 'bg-[#0c4dbe]',
-    desc: 'Treinos abertos à comunidade de Cornélio Procópio — não é necessário ser aluno da UTFPR. O projeto apresenta o futebol americano a qualquer pessoa interessada, sem custo e sem exigência de experiência prévia.',
-    highlight: 'Treinos: Ter, Qui 17h30 · Sáb 09h',
-  },
-  {
-    icon: FaSchool,
-    name: 'Wolves nas Escolas',
-    tag: 'Educação',
-    tagColor: 'bg-emerald-600',
-    desc: 'Visitas a escolas públicas da cidade para apresentar o futebol americano, promover valores como trabalho em equipe, disciplina e fair play entre jovens estudantes do ensino fundamental e médio.',
-    highlight: 'Público: ensino fundamental e médio',
-  },
-  {
-    icon: FaHandshake,
-    name: 'Flag Inclusivo',
-    tag: 'Inclusão',
-    tagColor: 'bg-orange-500',
-    desc: 'Projeto de flag football voltado para ampliar a participação de grupos que ainda têm pouca representação no esporte — incluindo mulheres e pessoas que preferem a modalidade sem contato físico.',
-    highlight: 'Modalidade: Flag Football',
-  },
-  {
-    icon: FaHeart,
-    name: 'Wolves na APAE',
-    tag: 'Inclusão Social',
-    tagColor: 'bg-pink-600',
-    desc: 'Visitas e atividades de flag football com alunos da APAE de Cornélio Procópio. O projeto leva o esporte como ferramenta de integração, alegria e desenvolvimento para pessoas com deficiência intelectual.',
-    highlight: 'Parceria: APAE Cornélio Procópio',
-  },
+const TAG_COLORS = {
+  'Esporte & Comunidade': 'bg-[#0c4dbe]',
+  'Educação':             'bg-emerald-600',
+  'Inclusão':             'bg-orange-500',
+  'Inclusão Social':      'bg-pink-600',
+  'Parceria':             'bg-purple-600',
+  'Geral':                'bg-gray-600',
+}
+
+const TAG_ICONS = {
+  'Esporte & Comunidade': FaFootballBall,
+  'Educação':             FaSchool,
+  'Inclusão':             FaHandshake,
+  'Inclusão Social':      FaHeart,
+  'Parceria':             FaUsers,
+  'Geral':                FaStar,
+}
+
+const DEFAULT_PROJECTS = [
+  { name: 'Futebol Americano para Todos', tag: 'Esporte & Comunidade', desc: 'Treinos abertos à comunidade de Cornélio Procópio — não é necessário ser aluno da UTFPR. O projeto apresenta o futebol americano a qualquer pessoa interessada, sem custo e sem exigência de experiência prévia.', highlight: 'Treinos: Ter, Qui 17h30 · Sáb 09h' },
+  { name: 'Wolves nas Escolas',           tag: 'Educação',             desc: 'Visitas a escolas públicas da cidade para apresentar o futebol americano, promover valores como trabalho em equipe, disciplina e fair play entre jovens estudantes do ensino fundamental e médio.', highlight: 'Público: ensino fundamental e médio' },
+  { name: 'Flag Inclusivo',               tag: 'Inclusão',             desc: 'Projeto de flag football voltado para ampliar a participação de grupos que ainda têm pouca representação no esporte — incluindo mulheres e pessoas que preferem a modalidade sem contato físico.', highlight: 'Modalidade: Flag Football' },
+  { name: 'Wolves na APAE',               tag: 'Inclusão Social',      desc: 'Visitas e atividades de flag football com alunos da APAE de Cornélio Procópio. O projeto leva o esporte como ferramenta de integração, alegria e desenvolvimento para pessoas com deficiência intelectual.', highlight: 'Parceria: APAE Cornélio Procópio' },
 ]
 
 export default function ExtensaoPage() {
   usePageTitle('Extensão')
+  const [projects, setProjects] = useState(DEFAULT_PROJECTS)
+
+  useEffect(() => {
+    getDoc(doc(db, 'config', 'extensao')).then(snap => {
+      if (snap.exists() && snap.data().projetos?.length) setProjects(snap.data().projetos)
+    }).catch(() => {})
+  }, [])
   return (
     <div className="page-enter pb-20">
 
@@ -126,28 +126,34 @@ export default function ExtensaoPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {projects.map(({ icon: Icon, name, tag, tagColor, desc, highlight }) => (
-              <div key={name} className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden card-hover group flex flex-col">
-                <div className="h-2 bg-[#0c4dbe]" />
-                <div className="p-7 flex flex-col flex-1">
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#0c4dbe]/15 flex items-center justify-center shrink-0">
-                      <Icon size={22} className="text-[#0c4dbe]" />
+            {projects.map((p) => {
+              const Icon = TAG_ICONS[p.tag] || FaStar
+              const tagColor = TAG_COLORS[p.tag] || 'bg-gray-600'
+              return (
+                <div key={p.name} className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden card-hover group flex flex-col">
+                  <div className="h-2 bg-[#0c4dbe]" />
+                  <div className="p-7 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#0c4dbe]/15 flex items-center justify-center shrink-0">
+                        <Icon size={22} className="text-[#0c4dbe]" />
+                      </div>
+                      <span className={`${tagColor} text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0`}>
+                        {p.tag}
+                      </span>
                     </div>
-                    <span className={`${tagColor} text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0`}>
-                      {tag}
-                    </span>
-                  </div>
-                  <h3 className="text-white font-black text-lg mb-3 group-hover:text-[#6b90d4] transition-colors leading-snug">
-                    {name}
-                  </h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-5 flex-1">{desc}</p>
-                  <div className="bg-black/30 rounded-xl px-4 py-2.5">
-                    <span className="text-[#0c4dbe] text-xs font-semibold">{highlight}</span>
+                    <h3 className="text-white font-black text-lg mb-3 group-hover:text-[#6b90d4] transition-colors leading-snug">
+                      {p.name}
+                    </h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-5 flex-1">{p.desc}</p>
+                    {p.highlight && (
+                      <div className="bg-black/30 rounded-xl px-4 py-2.5">
+                        <span className="text-[#0c4dbe] text-xs font-semibold">{p.highlight}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
